@@ -4,10 +4,7 @@ import android.content.Context
 import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.util.Log
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.border
@@ -33,9 +30,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.tooling.preview.Preview as CompPrev
 import java.io.File
+import java.nio.ByteBuffer
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+
+typealias LumaListener = (luma: Double) -> Unit
 
 private fun takePhoto(
     filenameFormat: String,
@@ -74,6 +74,28 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspend
     }
 }
 
+private class LuminosityAnalyzer(private val listener: LumaListener) : ImageAnalysis.Analyzer {
+
+    private fun ByteBuffer.toByteArray(): ByteArray {
+        rewind()    // Rewind the buffer to zero
+        val data = ByteArray(remaining())
+        get(data)   // Copy the buffer into a byte array
+        return data // Return the byte array
+    }
+
+    override fun analyze(image: ImageProxy) {
+
+        val buffer = image.planes[0].buffer
+        val data = buffer.toByteArray()
+        val pixels = data.map { it.toInt() and 0xFF }
+        val luma = pixels.average()
+
+        listener(luma)
+
+        image.close()
+    }
+}
+
 @CompPrev(showBackground = true)
 @Composable
 fun CameraView(
@@ -90,6 +112,13 @@ fun CameraView(
     val preview = Preview.Builder().build()
     val previewView = remember { PreviewView(context) }
     val imageCapture: ImageCapture = remember { ImageCapture.Builder().build() }
+    val imageAnalyzer = ImageAnalysis.Builder()
+        .build()
+        .also {
+            it.setAnalyzer(executor, LuminosityAnalyzer { luma ->
+                Log.d("Mao", "Average luminosity: $luma")
+            })
+        }
     val cameraSelector = CameraSelector.Builder()
         .requireLensFacing(lensFacing)
         .build()
@@ -102,7 +131,8 @@ fun CameraView(
             lifecycleOwner,
             cameraSelector,
             preview,
-            imageCapture
+            imageCapture,
+            imageAnalyzer
         )
 
         preview.setSurfaceProvider(previewView.surfaceProvider)

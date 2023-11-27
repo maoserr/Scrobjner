@@ -7,6 +7,8 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -34,6 +36,7 @@ class MainActivity : ComponentActivity() {
 
     private var showPhoto: MutableState<Boolean> = mutableStateOf(false)
     private var photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
