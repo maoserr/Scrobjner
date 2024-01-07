@@ -7,8 +7,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -24,6 +22,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
+import com.maoserr.scrobjner.ui.views.CameraView
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -40,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        this.actionBar?.hide()
         setContent {
             ScrobjnerTheme {
                 if (shouldShowCamera.value) {
@@ -47,10 +47,11 @@ class MainActivity : ComponentActivity() {
                         outputDirectory = outputDirectory,
                         executor = cameraExecutor,
                         onImageCaptured = ::handleImageCapture,
+                        onClose = ::handleClose,
                         onError = { Log.e("kilo", "View error:", it) }
                     )
                 } else {
-                    Greeting("Android", shouldShowCamera, showPhoto, photoUri)
+                    Greeting( shouldShowCamera, showPhoto, photoUri)
                 }
             }
         }
@@ -63,10 +64,10 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            Log.i("kilo", "Permission granted")
+            Log.i("Mao", "Permission granted")
             shouldShowCamera.value = true
         } else {
-            Log.i("kilo", "Permission denied")
+            Log.i("Mao", "Permission denied")
         }
     }
 
@@ -76,31 +77,36 @@ class MainActivity : ComponentActivity() {
                 this,
                 android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                Log.i("kilo", "Permission previously granted")
+                Log.i("Mao", "Permission previously granted")
                 shouldShowCamera.value = true
             }
 
             ActivityCompat.shouldShowRequestPermissionRationale(
                 this,
                 android.Manifest.permission.CAMERA
-            ) -> Log.i("kilo", "Show camera permissions dialog")
+            ) -> Log.i("Mao", "Show camera permissions dialog")
 
             else -> requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
     private fun handleImageCapture(uri: Uri) {
-        Log.i("kilo", "Image captured: $uri")
+        Log.i("Mao", "Image captured: $uri")
         shouldShowCamera.value = false
         photoUri.value = uri
         showPhoto.value = true
+    }
+
+    private fun handleClose(){
+        shouldShowCamera.value = false
     }
 
     private fun getOutputDirectory(): File {
         val mediaDir = externalMediaDirs.firstOrNull()?.let {
             File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
         }
-
+        Log.i("mao",mediaDir.toString())
+        Log.i("mao",filesDir.toString())
         return if (mediaDir != null && mediaDir.exists()) mediaDir else filesDir
     }
 
@@ -114,7 +120,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Greeting(
-    name: String, showCam: MutableState<Boolean> = mutableStateOf(false),
+    showCam: MutableState<Boolean> = mutableStateOf(false),
     showPhoto: MutableState<Boolean> = mutableStateOf(false),
     photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY)
 ) {
@@ -185,6 +191,6 @@ fun Greeting(
 @Composable
 fun testPreview() {
     ScrobjnerTheme {
-        Greeting("Hello")
+        Greeting()
     }
 }

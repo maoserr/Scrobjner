@@ -1,4 +1,4 @@
-package com.maoserr.scrobjner
+package com.maoserr.scrobjner.ui.views
 
 import android.content.Context
 import android.icu.text.SimpleDateFormat
@@ -8,12 +8,10 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.sharp.Close
 import androidx.compose.material.icons.sharp.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,6 +100,7 @@ fun CameraView(
     outputDirectory: File,
     executor: Executor,
     onImageCaptured: (Uri) -> Unit,
+    onClose: ()-> Unit,
     onError: (ImageCaptureException) -> Unit
 ) {
     // 1
@@ -141,31 +140,47 @@ fun CameraView(
     // 3
     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
         AndroidView({ previewView }, modifier = Modifier.fillMaxSize())
-
-        IconButton(
-            modifier = Modifier.padding(bottom = 20.dp),
-            onClick = {
-                Log.i("kilo", "ON CLICK")
-                takePhoto(
-                    filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS",
-                    imageCapture = imageCapture,
-                    outputDirectory = outputDirectory,
-                    executor = executor,
-                    onImageCaptured = onImageCaptured,
-                    onError = onError
-                )
-            },
-            content = {
-                Icon(
-                    imageVector = Icons.Sharp.PlayArrow,
-                    contentDescription = "Take picture",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(100.dp)
-                        .padding(1.dp)
-                        .border(1.dp, Color.White, CircleShape)
-                )
-            }
-        )
+        Row (Modifier.padding(bottom = 20.dp)){
+            IconButton(
+                onClick = {
+                    Log.i("kilo", "ON CLICK")
+                    takePhoto(
+                        filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS",
+                        imageCapture = imageCapture,
+                        outputDirectory = outputDirectory,
+                        executor = executor,
+                        onImageCaptured = onImageCaptured,
+                        onError = onError
+                    )
+                },
+                content = {
+                    Icon(
+                        imageVector = Icons.Sharp.PlayArrow,
+                        contentDescription = "Take picture",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(1.dp)
+                            .border(1.dp, Color.White, CircleShape)
+                    )
+                }
+            )
+            IconButton(
+                onClick = {
+                    onClose()
+                },
+                content = {
+                    Icon(
+                        imageVector = Icons.Sharp.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(1.dp)
+                            .border(1.dp, Color.White, CircleShape)
+                    )
+                }
+            )
+        }
     }
 }
