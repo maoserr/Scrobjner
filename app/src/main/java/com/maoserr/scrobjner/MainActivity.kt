@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import coil.compose.rememberAsyncImagePainter
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
 import com.maoserr.scrobjner.ui.views.CameraView
@@ -58,36 +56,6 @@ class MainActivity : ComponentActivity() {
         requestCameraPermission()
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
-    }
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            Log.i("Mao", "Permission granted")
-            shouldShowCamera.value = true
-        } else {
-            Log.i("Mao", "Permission denied")
-        }
-    }
-
-    private fun requestCameraPermission() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                Log.i("Mao", "Permission previously granted")
-                shouldShowCamera.value = true
-            }
-
-            ActivityCompat.shouldShowRequestPermissionRationale(
-                this,
-                android.Manifest.permission.CAMERA
-            ) -> Log.i("Mao", "Show camera permissions dialog")
-
-            else -> requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-        }
     }
 
     private fun handleImageCapture(uri: Uri) {
