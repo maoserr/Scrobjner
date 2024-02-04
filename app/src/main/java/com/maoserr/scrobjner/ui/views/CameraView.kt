@@ -57,28 +57,6 @@ private fun takePhoto(
     })
 }
 
-private class LuminosityAnalyzer(private val listener: LumaListener) : ImageAnalysis.Analyzer {
-
-    private fun ByteBuffer.toByteArray(): ByteArray {
-        rewind()    // Rewind the buffer to zero
-        val data = ByteArray(remaining())
-        get(data)   // Copy the buffer into a byte array
-        return data // Return the byte array
-    }
-
-    override fun analyze(image: ImageProxy) {
-
-        val buffer = image.planes[0].buffer
-        val data = buffer.toByteArray()
-        val pixels = data.map { it.toInt() and 0xFF }
-        val luma = pixels.average()
-
-        listener(luma)
-
-        image.close()
-    }
-}
-
 @CompPrev(showBackground = true)
 @Composable
 fun CameraView(
@@ -93,11 +71,11 @@ fun CameraView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    CameraController.buildCamView(lensFacing, context, lifecycleOwner)
+    CameraController.BuildCamView(lensFacing, context, lifecycleOwner)
 
     // 3
     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
-        CameraController.previewView()
+        CameraController.AddPreviewView()
         Row (Modifier.padding(bottom = 20.dp)){
             IconButton(
                 onClick = {

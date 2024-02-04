@@ -18,6 +18,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.maoserr.scrobjner.R
 import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
@@ -41,7 +42,7 @@ object CameraController {
         private set
 
     // Init props
-    private var capturePath: String? = null
+    private var capturePath: File? = null
     private var analyzerProc: Analyzer? = null
 
     // View props
@@ -54,24 +55,42 @@ object CameraController {
      */
     fun initCamera(
         comp: ComponentActivity,
-        capture: String?,
-        analyzer: Analyzer?
+        capture: Boolean = false,
+        analyzer: Analyzer? = null
     ) {
         requestCameraPermission(
             comp
         ) {
             canShowCamera = true
-            capturePath = capture
+            if (capture){
+                capturePath = getOutputDirectory(comp)
+            }
             analyzerProc = analyzer
         }
 
     }
 
     /**
+     * Releases camera
+     */
+    fun releaseCamera(){
+        cameraExec.shutdown()
+    }
+
+    private fun getOutputDirectory(comp:ComponentActivity): File {
+        val mediaDir = comp.externalMediaDirs.firstOrNull()?.let {
+            File(it, comp.resources.getString(R.string.app_name)).apply { mkdirs() }
+        }
+        Log.i(TAG,mediaDir.toString())
+        Log.i(TAG,comp.filesDir.toString())
+        return if (mediaDir != null && mediaDir.exists()) mediaDir else comp.filesDir
+    }
+
+    /**
      * Include this as the preview box
      */
     @Composable
-    fun previewView(){
+    fun AddPreviewView(){
         if (!canShowCamera) {
             Log.e(TAG, "Camera not initialized")
             return
@@ -87,7 +106,7 @@ object CameraController {
      * Include this before the Camera view
      */
     @Composable
-    fun buildCamView(
+    fun BuildCamView(
         lensFacing: Int,
         context: Context,
         lifecycleOwner: LifecycleOwner
