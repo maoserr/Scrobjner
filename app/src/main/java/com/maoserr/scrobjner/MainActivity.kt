@@ -1,36 +1,22 @@
 package com.maoserr.scrobjner
 
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraControl
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
 import com.maoserr.scrobjner.controller.CameraController
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
 import com.maoserr.scrobjner.ui.views.CameraView
+import com.maoserr.scrobjner.ui.views.Greeting
 import java.io.File
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
-    private lateinit var outputDirectory: File
-    private lateinit var cameraExecutor: ExecutorService
-
     private var shouldShowCamera: MutableState<Boolean> = mutableStateOf(false)
 
     private var showPhoto: MutableState<Boolean> = mutableStateOf(false)
@@ -44,18 +30,14 @@ class MainActivity : ComponentActivity() {
             ScrobjnerTheme {
                 if (shouldShowCamera.value) {
                     CameraView(
-                        outputDirectory = outputDirectory,
-                        executor = cameraExecutor,
-                        onImageCaptured = ::handleImageCapture,
                         onClose = ::handleClose,
-                        onError = { Log.e("kilo", "View error:", it) }
                     )
                 } else {
                     Greeting( shouldShowCamera, showPhoto, photoUri)
                 }
             }
         }
-        CameraController.initCamera(this,false)
+        CameraController.initCamera(this)
     }
 
     private fun handleImageCapture(uri: Uri) {

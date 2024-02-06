@@ -1,9 +1,7 @@
 package com.maoserr.scrobjner.ui.views
 
-import android.icu.text.SimpleDateFormat
-import android.net.Uri
 import android.util.Log
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,53 +16,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.concurrent.Executor
-import androidx.compose.ui.tooling.preview.Preview as CompPrev
 import com.maoserr.scrobjner.controller.CameraController
+import androidx.compose.ui.tooling.preview.Preview as CompPrev
 
-typealias LumaListener = (luma: Double) -> Unit
+/**
+ * Tag for logging
+ */
+private const val TAG = "Scrobjner-CamView"
 
-private fun takePhoto(
-    filenameFormat: String,
-    imageCapture: ImageCapture,
-    outputDirectory: File,
-    executor: Executor,
-    onImageCaptured: (Uri) -> Unit,
-    onError: (ImageCaptureException) -> Unit
-) {
 
-    val photoFile = File(
-        outputDirectory,
-        SimpleDateFormat(filenameFormat, java.util.Locale.US).format(System.currentTimeMillis()) + ".jpg"
-    )
-
-    val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
-    imageCapture.takePicture(outputOptions, executor, object: ImageCapture.OnImageSavedCallback {
-        override fun onError(exception: ImageCaptureException) {
-            Log.e("kilo", "Take photo error:", exception)
-            onError(exception)
-        }
-
-        override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-            val savedUri = Uri.fromFile(photoFile)
-            onImageCaptured(savedUri)
-        }
-    })
-}
-
-@CompPrev(showBackground = true)
+@Preview
 @Composable
 fun CameraView(
-    outputDirectory: File,
-    executor: Executor,
-    onImageCaptured: (Uri) -> Unit,
-    onClose: ()-> Unit,
-    onError: (ImageCaptureException) -> Unit
+    onClose: (()-> Unit)? = null,
 ) {
     // 1
     val lensFacing = CameraSelector.LENS_FACING_BACK
@@ -79,15 +45,8 @@ fun CameraView(
         Row (Modifier.padding(bottom = 20.dp)){
             IconButton(
                 onClick = {
-                    Log.i("kilo", "ON CLICK")
-                    takePhoto(
-                        filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS",
-                        imageCapture = imageCapture,
-                        outputDirectory = outputDirectory,
-                        executor = executor,
-                        onImageCaptured = onImageCaptured,
-                        onError = onError
-                    )
+                    Log.i(TAG, "Capturing photo...")
+                    CameraController.capturePhoto()
                 },
                 content = {
                     Icon(
@@ -103,7 +62,9 @@ fun CameraView(
             )
             IconButton(
                 onClick = {
-                    onClose()
+                    if (onClose != null) {
+                        onClose()
+                    }
                 },
                 content = {
                     Icon(

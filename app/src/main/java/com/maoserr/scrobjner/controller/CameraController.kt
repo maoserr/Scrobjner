@@ -3,7 +3,6 @@ package com.maoserr.scrobjner.controller
 import android.content.Context
 import android.content.pm.PackageManager
 import android.icu.text.SimpleDateFormat
-import android.net.Uri
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +18,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.maoserr.scrobjner.R
+import com.maoserr.scrobjner.controller.CameraController.initCamera
+import com.maoserr.scrobjner.controller.CameraController.previewView
 import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
@@ -42,6 +43,7 @@ object CameraController {
         private set
 
     // Init props
+    private var captureCb: ((File) -> Unit)? = null
     private var capturePath: File? = null
     private var analyzerProc: Analyzer? = null
 
@@ -55,14 +57,15 @@ object CameraController {
      */
     fun initCamera(
         comp: ComponentActivity,
-        capture: Boolean = false,
+        onCapture: ((File) -> Unit)? = null,
         analyzer: Analyzer? = null
     ) {
         requestCameraPermission(
             comp
         ) {
             canShowCamera = true
-            if (capture){
+            captureCb = onCapture
+            if (onCapture != null) {
                 capturePath = getOutputDirectory(comp)
             }
             analyzerProc = analyzer
@@ -73,16 +76,16 @@ object CameraController {
     /**
      * Releases camera
      */
-    fun releaseCamera(){
+    fun releaseCamera() {
         cameraExec.shutdown()
     }
 
-    private fun getOutputDirectory(comp:ComponentActivity): File {
+    private fun getOutputDirectory(comp: ComponentActivity): File {
         val mediaDir = comp.externalMediaDirs.firstOrNull()?.let {
             File(it, comp.resources.getString(R.string.app_name)).apply { mkdirs() }
         }
-        Log.i(TAG,mediaDir.toString())
-        Log.i(TAG,comp.filesDir.toString())
+        Log.i(TAG, mediaDir.toString())
+        Log.i(TAG, comp.filesDir.toString())
         return if (mediaDir != null && mediaDir.exists()) mediaDir else comp.filesDir
     }
 
@@ -90,12 +93,12 @@ object CameraController {
      * Include this as the preview box
      */
     @Composable
-    fun AddPreviewView(){
+    fun AddPreviewView() {
         if (!canShowCamera) {
             Log.e(TAG, "Camera not initialized")
             return
         }
-        if (previewView == null){
+        if (previewView == null) {
             Log.e(TAG, "Camera views not built")
             return
         }
@@ -119,7 +122,7 @@ object CameraController {
         previewView = remember { PreviewView(context) }
         val useCases: List<UseCase> = listOfNotNull(
             preview,
-            capturePath?.let {
+            captureCb?.let {
                 imageCapture = remember { ImageCapture.Builder().build() }
                 imageCapture
             },
@@ -147,7 +150,7 @@ object CameraController {
         }
     }
 
-    fun capturePhoto(){
+    fun capturePhoto() {
         val photoFile = File(
             capturePath,
             SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
@@ -156,15 +159,14 @@ object CameraController {
 
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-        imageCapture!!.takePicture(outputOptions, cameraExec, object: ImageCapture.OnImageSavedCallback {
+        imageCapture!!.takePicture(outputOptions, cameraExec,
+            object : ImageCapture.OnImageSavedCallback {
             override fun onError(exception: ImageCaptureException) {
-                Log.e("kilo", "Take photo error:", exception)
-                onError(exception)
+                Log.e(TAG, "Take photo error:", exception)
             }
 
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                val savedUri = Uri.fromFile(photoFile)
-//                onImageCaptured(savedUri)
+                captureCb?.let { it(photoFile) }
             }
         })
     }

@@ -4,6 +4,8 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
 
+typealias LumaListener = (luma: Double) -> Unit
+
 class ImageProcControl : ImageAnalysis.Analyzer {
 
     private fun ByteBuffer.toByteArray(): ByteArray {
