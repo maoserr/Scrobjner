@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.maoserr.scrobjner.controller.CameraController
-import androidx.compose.ui.tooling.preview.Preview as CompPrev
 
 /**
  * Tag for logging
@@ -62,9 +61,7 @@ fun CameraView(
             )
             IconButton(
                 onClick = {
-                    if (onClose != null) {
-                        onClose()
-                    }
+                    onClose?.invoke()
                 },
                 content = {
                     Icon(
