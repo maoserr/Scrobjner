@@ -18,7 +18,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.maoserr.scrobjner.R
-import com.maoserr.scrobjner.controller.CameraController.initCamera
+import com.maoserr.scrobjner.controller.CameraController.init
 import com.maoserr.scrobjner.controller.CameraController.previewView
 import java.io.File
 import java.util.*
@@ -33,7 +33,7 @@ private const val TAG = "Scrobjner-Cam"
 
 /**
  * Controls main camera functionality.
- * Call [initCamera] in the main loop before loading camera view,
+ * Call [init] in the main loop before loading camera view,
  * then call [buildCamView] to build inside your view,
  * and add [previewView] to where you want the preview to show up
  */
@@ -55,7 +55,7 @@ object CameraController {
      * Requests camera permission using [comp] and saves any
      * [capture] or [analyzer] setting.
      */
-    fun initCamera(
+    fun init(
         comp: ComponentActivity,
         onCapture: ((File) -> Unit)? = null,
         analyzer: Analyzer? = null
@@ -76,7 +76,7 @@ object CameraController {
     /**
      * Releases camera
      */
-    fun releaseCamera() {
+    fun release() {
         cameraExec.shutdown()
     }
 
@@ -128,6 +128,7 @@ object CameraController {
             },
             analyzerProc?.let { anly ->
                 ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
                     .also {
                         it.setAnalyzer(cameraExec, anly)

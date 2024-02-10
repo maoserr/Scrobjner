@@ -1,12 +1,22 @@
 package com.maoserr.scrobjner.controller
 
+import ai.onnxruntime.OrtSession
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
 
 typealias LumaListener = (luma: Double) -> Unit
 
-class ImageProcControl : ImageAnalysis.Analyzer {
+internal data class Result(
+    var detectedIndices: List<Int> = emptyList(),
+    var detectedScore: MutableList<Float> = mutableListOf<Float>(),
+    var processTimeMs: Long = 0
+) {}
+
+internal class SamAnalyzer(
+    private val ortSession: OrtSession?,
+    private val callBack: (Result) -> Unit
+): ImageAnalysis.Analyzer {
 
     private fun ByteBuffer.toByteArray(): ByteArray {
         rewind()    // Rewind the buffer to zero

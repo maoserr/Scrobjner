@@ -13,8 +13,6 @@ import com.maoserr.scrobjner.controller.CameraController
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
 import com.maoserr.scrobjner.ui.views.CameraView
 import com.maoserr.scrobjner.ui.views.Greeting
-import java.io.File
-import java.util.concurrent.ExecutorService
 
 class MainActivity : ComponentActivity() {
     private var shouldShowCamera: MutableState<Boolean> = mutableStateOf(false)
@@ -37,7 +35,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        CameraController.initCamera(this)
+        CameraController.init(this)
     }
 
     private fun handleImageCapture(uri: Uri) {
@@ -53,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        CameraController.releaseCamera()
+        CameraController.release()
     }
 }
 
