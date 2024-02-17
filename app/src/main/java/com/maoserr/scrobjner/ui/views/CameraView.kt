@@ -31,14 +31,9 @@ private const val TAG = "Scrobjner-CamView"
 fun CameraView(
     onClose: (()-> Unit)? = null,
 ) {
-    // 1
-    val lensFacing = CameraSelector.LENS_FACING_BACK
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    CameraController.BuildCamView(CameraSelector.LENS_FACING_BACK,
+        LocalContext.current, LocalLifecycleOwner.current)
 
-    CameraController.BuildCamView(lensFacing, context, lifecycleOwner)
-
-    // 3
     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
         CameraController.AddPreviewView()
         Row (Modifier.padding(bottom = 20.dp)){

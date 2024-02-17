@@ -1,5 +1,6 @@
 package com.maoserr.scrobjner
 
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -10,9 +11,12 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.Preview
 import com.maoserr.scrobjner.controller.CameraController
+import com.maoserr.scrobjner.controller.OnnxController
+import com.maoserr.scrobjner.controller.SamAnalyzer
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
 import com.maoserr.scrobjner.ui.views.CameraView
 import com.maoserr.scrobjner.ui.views.Greeting
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     private var shouldShowCamera: MutableState<Boolean> = mutableStateOf(false)
@@ -35,12 +39,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        CameraController.init(this)
+        OnnxController.init(this)
+        CameraController.init(this, ::handleImageCapture,
+            SamAnalyzer())
     }
 
-    private fun handleImageCapture(uri: Uri) {
+    private fun handleImageCapture(file: File) {
+        val uri = Uri.fromFile(file)
+        val bit = BitmapFactory.decodeFile(file.absolutePath)
+        OnnxController.runModel(bit)
         Log.i("Mao", "Image captured: $uri")
-        shouldShowCamera.value = false
+        this.handleClose()
         photoUri.value = uri
         showPhoto.value = true
     }
@@ -52,13 +61,14 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         CameraController.release()
+        OnnxController.release()
     }
 }
 
 
 @Preview(showBackground = true)
 @Composable
-fun testPreview() {
+fun TestPreview() {
     ScrobjnerTheme {
         Greeting()
     }

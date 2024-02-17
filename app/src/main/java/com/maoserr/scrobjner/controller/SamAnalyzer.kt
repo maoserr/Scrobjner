@@ -1,6 +1,5 @@
 package com.maoserr.scrobjner.controller
 
-import ai.onnxruntime.OrtSession
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
@@ -13,10 +12,7 @@ internal data class Result(
     var processTimeMs: Long = 0
 ) {}
 
-internal class SamAnalyzer(
-    private val ortSession: OrtSession?,
-    private val callBack: (Result) -> Unit
-): ImageAnalysis.Analyzer {
+internal class SamAnalyzer(): ImageAnalysis.Analyzer {
 
     private fun ByteBuffer.toByteArray(): ByteArray {
         rewind()    // Rewind the buffer to zero
