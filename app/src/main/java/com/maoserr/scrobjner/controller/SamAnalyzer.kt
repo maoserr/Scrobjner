@@ -6,12 +6,6 @@ import java.nio.ByteBuffer
 
 typealias LumaListener = (luma: Double) -> Unit
 
-internal data class Result(
-    var detectedIndices: List<Int> = emptyList(),
-    var detectedScore: MutableList<Float> = mutableListOf<Float>(),
-    var processTimeMs: Long = 0
-) {}
-
 internal class SamAnalyzer(): ImageAnalysis.Analyzer {
 
     private fun ByteBuffer.toByteArray(): ByteArray {
