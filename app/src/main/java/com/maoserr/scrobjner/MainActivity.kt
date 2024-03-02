@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleImageCapture(file: File) {
+        shouldShowCamera.value = false
         val uri = Uri.fromFile(file)
         val bit = BitmapFactory.decodeFile(file.absolutePath)
         OnnxController.runModel(bit)
