@@ -1,6 +1,9 @@
 package com.maoserr.scrobjner.ui.views
 
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.maoserr.scrobjner.controller.OnnxController
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +63,14 @@ fun Greeting(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Button(onClick = {
+                val sdcard = Environment.getExternalStorageDirectory().absolutePath
+                val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
+                OnnxController.runModel(bit)
+                Log.i("Mao", "Ran model.")
+            }) {
+                Text("Check")
+            }
             Text("image1")
             if (showPhoto.value) {
                 Text("image")

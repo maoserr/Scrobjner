@@ -4,7 +4,6 @@ import ai.onnxruntime.*
 import ai.onnxruntime.extensions.OrtxPackage
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
 import java.lang.Float.min
@@ -68,10 +67,40 @@ object OnnxController {
         }
     }
 
-    private fun decode(embeds:OnnxTensor, prompt:Map<String,OnnxTensor>) {
-        ortEnv.use {
+    private fun decode(embeds:OnnxTensor) {
+        //decoder_inputs = {
+        //            "image_embeddings": image_embedding,
+        //            "point_coords": onnx_coord,
+        //            "point_labels": onnx_label,
+        //            "mask_input": onnx_mask_input,
+        //            "has_mask_input": onnx_has_mask_input,
+        //            "orig_im_size": np.array(self.input_size, dtype=np.float32),
+        //        }
 
-            ortSesDec.run(
+        ortEnv.use {
+            val ptCbuf = FloatBuffer.allocate(1)
+            val ptLbuf = FloatBuffer.allocate(1)
+            val maskBuf = FloatBuffer.allocate(1)
+            val hasMaskBuf = FloatBuffer.allocate(1)
+            val origImsbuf = FloatBuffer.allocate(1)
+
+            val ptCoords = OnnxTensor.createTensor(ortEnv, ptCbuf)
+            val ptLbls = OnnxTensor.createTensor(ortEnv, ptLbuf)
+            val maskInput = OnnxTensor.createTensor(ortEnv, maskBuf)
+            val hasMaskInp = OnnxTensor.createTensor(ortEnv, hasMaskBuf)
+            val origImSize = OnnxTensor.createTensor(ortEnv, origImsbuf)
+            val decInput = mapOf(
+                "image_embeddings" to embeds,
+                "point_coords" to ptCoords,
+                "point_labels" to ptLbls,
+                "mask_input" to maskInput,
+                "has_mask_input" to hasMaskInp,
+                "orig_im_size" to origImSize
+                )
+            val out = ortSesDec.run(decInput)
+            out.use {
+
+            }
         }
     }
 
@@ -104,8 +133,7 @@ object OnnxController {
 
     fun runModel(img: Bitmap) {
         val embeds = encode(img)
-        val prompt = OnnxTensor.createTensor()
-        val res = decode(embeds as OnnxTensor, )
+        val res = decode(embeds as OnnxTensor)
     }
     fun release() {
         ortEnv.close()
