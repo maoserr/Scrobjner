@@ -6,19 +6,18 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
+import org.jetbrains.kotlinx.multik.api.mk
+import org.jetbrains.kotlinx.multik.api.toNDArray
+import org.jetbrains.kotlinx.multik.api.zeros
+import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.lang.Float.min
 import java.nio.FloatBuffer
-import java.util.*
 
 private const val DIM_PIXEL_SIZE = 3;
 private const val IMAGE_SIZE_X = 1024;
 private const val IMAGE_SIZE_Y = 684;
 
-internal data class Result(
-    var detectedIndices: List<Int> = emptyList(),
-    var detectedScore: MutableList<Float> = mutableListOf<Float>(),
-    var processTimeMs: Long = 0
-) {}
+private data class encResult(val embeds:OnnxTensor, val origw:Int, val origh: Int)
 
 object OnnxController {
     private var ortEnv: OrtEnvironment = OrtEnvironment.getEnvironment()
@@ -68,27 +67,23 @@ object OnnxController {
     }
 
     private fun decode(embeds:OnnxTensor) {
-        //decoder_inputs = {
-        //            "image_embeddings": image_embedding,
-        //            "point_coords": onnx_coord,
-        //            "point_labels": onnx_label,
-        //            "mask_input": onnx_mask_input,
-        //            "has_mask_input": onnx_has_mask_input,
-        //            "orig_im_size": np.array(self.input_size, dtype=np.float32),
-        //        }
+        val ptCoords1= mk[
+            mk[327.1111f,426.66666f],
+            mk[241.77777f,341.33334f],
+            mk[398.22223f,497.77777f],
+            mk[0.0f,0.0f]].toNDArray().toFloatArray()
+        val ptLbls1 = mk[mk[0.0f,2.0f,3.0f,-1.0f]].toNDArray().toFloatArray()
+        val mask = mk.zeros<Float>(1,1,256,256).toFloatArray()
+        val hasMask = mk.zeros<Float>(1).toFloatArray()
+        val origIm = mk[684f,1024f].toFloatArray()
+
 
         ortEnv.use {
-            val ptCbuf = FloatBuffer.allocate(1)
-            val ptLbuf = FloatBuffer.allocate(1)
-            val maskBuf = FloatBuffer.allocate(1)
-            val hasMaskBuf = FloatBuffer.allocate(1)
-            val origImsbuf = FloatBuffer.allocate(1)
-
-            val ptCoords = OnnxTensor.createTensor(ortEnv, ptCbuf)
-            val ptLbls = OnnxTensor.createTensor(ortEnv, ptLbuf)
-            val maskInput = OnnxTensor.createTensor(ortEnv, maskBuf)
-            val hasMaskInp = OnnxTensor.createTensor(ortEnv, hasMaskBuf)
-            val origImSize = OnnxTensor.createTensor(ortEnv, origImsbuf)
+            val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1,4,2))
+            val ptLbls = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptLbls1), longArrayOf(1,4))
+            val maskInput = OnnxTensor.createTensor(ortEnv,FloatBuffer.wrap(mask), longArrayOf(1,1,256,256))
+            val hasMaskInp = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(hasMask), longArrayOf(1))
+            val origImSize = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(origIm), longArrayOf(2))
             val decInput = mapOf(
                 "image_embeddings" to embeds,
                 "point_coords" to ptCoords,
@@ -128,8 +123,6 @@ object OnnxController {
             )
         )
     }
-
-
 
     fun runModel(img: Bitmap) {
         val embeds = encode(img)
