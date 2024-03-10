@@ -44,7 +44,7 @@ object OnnxController {
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    private fun encode(img: Bitmap): OnnxValue? {
+    private fun encode(img: Bitmap, decoder:(OnnxTensor)->Unit): Unit {
         val scaleX = IMAGE_SIZE_X.toFloat() / img.width
         val scaleY = IMAGE_SIZE_Y.toFloat() / img.height
         val scale = min(scaleX, scaleY)
@@ -58,9 +58,8 @@ object OnnxController {
                 val encInput = mapOf(inputEncName to imgDat)
                 val out = ortSesEnc.run(encInput)
                 out.use {
-                    @Suppress("UNCHECKED_CAST")
                     val rawOutput = out?.get(0)
-                    return rawOutput
+                    val res = decoder(rawOutput as OnnxTensor)
                 }
             }
         }
@@ -78,24 +77,24 @@ object OnnxController {
         val origIm = mk[684f,1024f].toFloatArray()
 
 
-        ortEnv.use {
-            val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1,4,2))
-            val ptLbls = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptLbls1), longArrayOf(1,4))
-            val maskInput = OnnxTensor.createTensor(ortEnv,FloatBuffer.wrap(mask), longArrayOf(1,1,256,256))
-            val hasMaskInp = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(hasMask), longArrayOf(1))
-            val origImSize = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(origIm), longArrayOf(2))
-            val decInput = mapOf(
-                "image_embeddings" to embeds,
-                "point_coords" to ptCoords,
-                "point_labels" to ptLbls,
-                "mask_input" to maskInput,
-                "has_mask_input" to hasMaskInp,
-                "orig_im_size" to origImSize
-                )
-            val out = ortSesDec.run(decInput)
-            out.use {
-
-            }
+        val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1,4,2))
+        val ptLbls = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptLbls1), longArrayOf(1,4))
+        val maskInput = OnnxTensor.createTensor(ortEnv,FloatBuffer.wrap(mask), longArrayOf(1,1,256,256))
+        val hasMaskInp = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(hasMask), longArrayOf(1))
+        val origImSize = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(origIm), longArrayOf(2))
+        val decInput = mapOf(
+            "image_embeddings" to embeds,
+            "point_coords" to ptCoords,
+            "point_labels" to ptLbls,
+            "mask_input" to maskInput,
+            "has_mask_input" to hasMaskInp,
+            "orig_im_size" to origImSize
+            )
+        val out = ortSesDec.run(decInput)
+        out.use {
+            @Suppress("UNCHECKED_CAST")
+            val res = out.get(0).value as Array<Array<Array<FloatArray>>>
+            print("blah")
         }
     }
 
@@ -125,8 +124,7 @@ object OnnxController {
     }
 
     fun runModel(img: Bitmap) {
-        val embeds = encode(img)
-        val res = decode(embeds as OnnxTensor)
+        val embeds = encode(img, ::decode)
     }
     fun release() {
         ortEnv.close()
