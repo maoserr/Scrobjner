@@ -44,7 +44,7 @@ object OnnxController {
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    private fun encode(img: Bitmap, decoder:(OnnxTensor)->Unit): Unit {
+    private fun encode(img: Bitmap, decoder:(OnnxTensor)->Array<Array<Array<FloatArray>>>): Array<Array<Array<FloatArray>>> {
         val scaleX = IMAGE_SIZE_X.toFloat() / img.width
         val scaleY = IMAGE_SIZE_Y.toFloat() / img.height
         val scale = min(scaleX, scaleY)
@@ -60,12 +60,13 @@ object OnnxController {
                 out.use {
                     val rawOutput = out?.get(0)
                     val res = decoder(rawOutput as OnnxTensor)
+                    return res
                 }
             }
         }
     }
 
-    private fun decode(embeds:OnnxTensor) {
+    private fun decode(embeds:OnnxTensor):Array<Array<Array<FloatArray>>> {
         val ptCoords1= mk[
             mk[327.1111f,426.66666f],
             mk[241.77777f,341.33334f],
@@ -94,7 +95,7 @@ object OnnxController {
         out.use {
             @Suppress("UNCHECKED_CAST")
             val res = out.get(0).value as Array<Array<Array<FloatArray>>>
-            print("blah")
+            return res
         }
     }
 
@@ -124,7 +125,8 @@ object OnnxController {
     }
 
     fun runModel(img: Bitmap) {
-        val embeds = encode(img, ::decode)
+        val masks = encode(img, ::decode)
+        print("a")
     }
     fun release() {
         ortEnv.close()
