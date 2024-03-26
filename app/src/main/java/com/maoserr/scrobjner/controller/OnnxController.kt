@@ -17,8 +17,6 @@ private const val DIM_PIXEL_SIZE = 3;
 private const val IMAGE_SIZE_X = 1024;
 private const val IMAGE_SIZE_Y = 684;
 
-private data class encResult(val embeds:OnnxTensor, val origw:Int, val origh: Int)
-
 object OnnxController {
     private var ortEnv: OrtEnvironment = OrtEnvironment.getEnvironment()
 
@@ -44,7 +42,31 @@ object OnnxController {
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    private fun encode(img: Bitmap, decoder:(OnnxTensor)->Array<Array<Array<FloatArray>>>): Array<Array<Array<FloatArray>>> {
+    private fun encode(img: Bitmap): Array<Array<Array<FloatArray>>> {
+        val resized = scaleImg(img)
+        val floatBuf = img2Float(resized)
+        ortEnv.use {
+            val imgDat = OnnxTensor.createTensor(
+                ortEnv, floatBuf,
+                longArrayOf(
+                    img.height.toLong(),
+                    img.width.toLong(),
+                    DIM_PIXEL_SIZE.toLong()
+                )
+            )
+            imgDat.use {
+                val encInput = mapOf(inputEncName to imgDat)
+                val out = ortSesEnc.run(encInput)
+                out.use {
+                    val rawOutput = out?.get(0)
+                    val res = decode(rawOutput as OnnxTensor)
+                    return res
+                }
+            }
+        }
+    }
+
+    private fun scaleImg(img: Bitmap): Bitmap{
         val scaleX = IMAGE_SIZE_X.toFloat() / img.width
         val scaleY = IMAGE_SIZE_Y.toFloat() / img.height
         val scale = min(scaleX, scaleY)
@@ -52,18 +74,24 @@ object OnnxController {
         mat.postScale(scale, scale)
         val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
         img.recycle()
-        ortEnv.use {
-            val imgDat = img2Tensor(resized)
-            imgDat.use {
-                val encInput = mapOf(inputEncName to imgDat)
-                val out = ortSesEnc.run(encInput)
-                out.use {
-                    val rawOutput = out?.get(0)
-                    val res = decoder(rawOutput as OnnxTensor)
-                    return res
-                }
-            }
+        return resized
+    }
+
+    private fun img2Float(img: Bitmap): FloatBuffer{
+        val imgData = FloatBuffer.allocate(
+            DIM_PIXEL_SIZE * img.width * img.height
+        )
+        imgData.rewind()
+        val stride = img.width * img.height
+        val bmpData = IntArray(stride)
+        img.getPixels(bmpData, 0, img.width, 0, 0, img.width, img.height)
+        for (i in bmpData.indices) {
+            imgData.put(i * 3 + 2, (bmpData[i] shr 16 and 0xFF).toFloat())
+            imgData.put( i * 3 + 1, (bmpData[i] shr 8 and 0xFF).toFloat())
+            imgData.put( i * 3, (bmpData[i] and 0xFF).toFloat())
         }
+        imgData.rewind()
+        return imgData
     }
 
     private fun decode(embeds:OnnxTensor):Array<Array<Array<FloatArray>>> {
@@ -83,50 +111,35 @@ object OnnxController {
         val maskInput = OnnxTensor.createTensor(ortEnv,FloatBuffer.wrap(mask), longArrayOf(1,1,256,256))
         val hasMaskInp = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(hasMask), longArrayOf(1))
         val origImSize = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(origIm), longArrayOf(2))
-        val decInput = mapOf(
-            "image_embeddings" to embeds,
-            "point_coords" to ptCoords,
-            "point_labels" to ptLbls,
-            "mask_input" to maskInput,
-            "has_mask_input" to hasMaskInp,
-            "orig_im_size" to origImSize
-            )
-        val out = ortSesDec.run(decInput)
-        out.use {
-            @Suppress("UNCHECKED_CAST")
-            val res = out.get(0).value as Array<Array<Array<FloatArray>>>
-            return res
+        ptCoords.use {
+            ptLbls.use {
+                maskInput.use {
+                    hasMaskInp.use {
+                        origImSize.use {
+                            val decInput = mapOf(
+                                "image_embeddings" to embeds,
+                                "point_coords" to ptCoords,
+                                "point_labels" to ptLbls,
+                                "mask_input" to maskInput,
+                                "has_mask_input" to hasMaskInp,
+                                "orig_im_size" to origImSize
+                            )
+                            val out = ortSesDec.run(decInput)
+                            out.use {
+                                @Suppress("UNCHECKED_CAST")
+                                val res = out.get(0).value as Array<Array<Array<FloatArray>>>
+                                return res
+                            }
+                        }
+                    }
+                }
+            }
         }
-    }
-
-    private fun img2Tensor(img: Bitmap): OnnxTensor {
-        val imgData = FloatBuffer.allocate(
-                    DIM_PIXEL_SIZE * img.width * img.height
-        )
-        imgData.rewind()
-        val stride = img.width * img.height
-        val bmpData = IntArray(stride)
-        img.getPixels(bmpData, 0, img.width, 0, 0, img.width, img.height)
-        for (i in bmpData.indices) {
-            imgData.put(i * 3 + 2, (bmpData[i] shr 16 and 0xFF).toFloat())
-            imgData.put( i * 3 + 1, (bmpData[i] shr 8 and 0xFF).toFloat())
-            imgData.put( i * 3, (bmpData[i] and 0xFF).toFloat())
-        }
-
-        imgData.rewind()
-        return OnnxTensor.createTensor(
-            ortEnv, imgData,
-            longArrayOf(
-                img.height.toLong(),
-                img.width.toLong(),
-                DIM_PIXEL_SIZE.toLong()
-            )
-        )
     }
 
     fun runModel(img: Bitmap) {
-        val masks = encode(img, ::decode)
-        print("a")
+        val masks = encode(img)
+        val mask = masks[0][0]
     }
     fun release() {
         ortEnv.close()
