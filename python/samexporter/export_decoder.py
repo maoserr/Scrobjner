@@ -8,8 +8,8 @@ import pathlib
 
 import torch
 
-from segment_anything import sam_model_registry
-from segment_anything.utils.onnx import SamOnnxModel
+from mobile_sam import sam_model_registry
+from mobile_sam.utils.onnx import SamOnnxModel
 
 import argparse
 import warnings
@@ -27,23 +27,23 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "--checkpoint",
+    default="mobile_sam.pt",
     type=str,
-    required=True,
     help="The path to the SAM model checkpoint.",
 )
 
 parser.add_argument(
     "--output",
+    default="../app/src/main/res/raw/samdec.onnx",
     type=str,
-    required=True,
     help="The filename to save the ONNX model to.",
 )
 
 parser.add_argument(
     "--model-type",
+    default="vit_t",
     type=str,
-    required=True,
-    help="In ['default', 'vit_h', 'vit_l', 'vit_b']. "
+    help="In ['default', 'vit_h', 'vit_l', 'vit_b', 'vit_t']. "
     "Which type of SAM model to export.",
 )
 

@@ -19,28 +19,29 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "--checkpoint",
+    default="mobile_sam.pt",
     type=str,
-    required=True,
     help="The path to the SAM model checkpoint.",
 )
 
 parser.add_argument(
     "--output",
+    default="../app/src/main/res/raw/samenc.onnx",
     type=str,
-    required=True,
     help="The filename to save the ONNX model to.",
 )
 
 parser.add_argument(
     "--model-type",
+    default="mobile",
     type=str,
-    required=True,
     help="In ['default', 'vit_h', 'vit_l', 'vit_b', 'mobile']. "
     "Which type of SAM model to export.",
 )
 
 parser.add_argument(
     "--use-preprocess",
+    default=True,
     action="store_true",
     help=("Embed pre-processing into the model",),
 )
