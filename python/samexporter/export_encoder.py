@@ -43,7 +43,7 @@ parser.add_argument(
     "--use-preprocess",
     default=True,
     action="store_true",
-    help=("Embed pre-processing into the model",),
+    help="Embed pre-processing into the model",
 )
 
 parser.add_argument(
