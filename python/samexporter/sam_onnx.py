@@ -161,7 +161,7 @@ class SegmentAnythingONNX:
             output_masks.append(batch_masks)
         return np.array(output_masks)
 
-    def encode(self, cv_image):
+    def encode(self, cv_image, enhanced = False):
         """
         Calculate embedding and metadata for a single image.
         """
@@ -178,16 +178,21 @@ class SegmentAnythingONNX:
                 [0, 0, 1],
             ]
         )
-        cv_image = cv2.warpAffine(
-            cv_image,
-            transform_matrix[:2],
-            (self.input_size[1], self.input_size[0]),
-            flags=cv2.INTER_LINEAR,
-        )
+        if not enhanced:
+            cv_image = cv2.warpAffine(
+                cv_image,
+                transform_matrix[:2],
+                (self.input_size[1], self.input_size[0]),
+                flags=cv2.INTER_LINEAR,
+            )
 
-        encoder_inputs = {
-            self.encoder_input_name: cv_image.astype(np.float32),
-        }
+            encoder_inputs = {
+                self.encoder_input_name: cv_image.astype(np.float32),
+            }
+        else:
+            encoder_inputs = {
+                self.encoder_input_name: cv_image
+            }
         image_embedding = self.run_encoder(encoder_inputs)
         return {
             "image_embedding": image_embedding,

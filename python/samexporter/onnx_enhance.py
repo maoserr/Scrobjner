@@ -11,19 +11,13 @@ if __name__ == "__main__":
     # Results are much better when that can be used. Minimum opset is 16.
     onnx_opset = 17
     model = onnx.load(ONNX_MODEL)
-    inputs = [add_ppp.create_named_value("image", onnx.TensorProto.UINT8, ["num_bytes"])]
-
-    model_input_shape = model.graph.input[0].type.tensor_type.shape
-    w_in = model_input_shape.dim[-1].dim_value
-    h_in = model_input_shape.dim[-2].dim_value
+    inputs = [add_ppp.create_named_value("image", onnx.TensorProto.UINT8, ["h_in","w_in", 3])]
 
     pipeline = add_ppp.PrePostProcessor(inputs, onnx_opset)
     pipeline.add_pre_processing(
         [
-            add_ppp.ConvertImageToBGR(),  # jpg/png image to BGR in HWC layout
-            add_ppp.Resize((h_in, w_in)),
+            add_ppp.Resize((684, 1024), policy="not_larger"),
             add_ppp.ImageBytesToFloat(),  # Convert Y to float in range 0..1
-            add_ppp.Unsqueeze([0, 1]),  # add batch and channels dim to Y so shape is {1, 1, h_in, w_in}
         ]
     )
 

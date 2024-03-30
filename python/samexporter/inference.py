@@ -10,6 +10,12 @@ import numpy as np
 
 from samexporter.sam_onnx import SegmentAnythingONNX
 
+enhance = False
+
+if enhance:
+    enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
+else:
+    enc_mod = r"../app/src/main/res/raw/samenc.onnx"
 
 def str2bool(v):
     return v.lower() in ("true", "1")
@@ -19,7 +25,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument(
     "--encoder_model",
     type=str,
-    default=r"../app/src/main/res/raw/samenc.onnx",
+    default=enc_mod,
     help="Path to the ONNX encoder model",
 )
 argparser.add_argument(
@@ -64,7 +70,7 @@ if __name__ == "__main__":
     image = cv2.imread(args.image)
     prompt = json.load(open(args.prompt))
 
-    embedding = model.encode(image)
+    embedding = model.encode(image, enhance)
     masks = model.predict_masks(embedding, prompt)
 
     # Save the masks as a single image.
