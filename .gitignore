@@ -16,3 +16,4 @@ local.properties
 .idea
 python/*.pt
 __pycache__
+python/output.jpg
