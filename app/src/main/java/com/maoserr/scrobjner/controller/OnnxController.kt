@@ -11,6 +11,7 @@ import org.jetbrains.kotlinx.multik.api.toNDArray
 import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.lang.Float.min
+import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 
 private const val DIM_PIXEL_SIZE = 3;
@@ -43,8 +44,7 @@ object OnnxController {
     }
 
     private fun encode(img: Bitmap): Array<Array<Array<FloatArray>>> {
-        val resized = scaleImg(img)
-        val floatBuf = img2Float(resized)
+        val floatBuf = img2Float(img)
         ortEnv.use {
             val imgDat = OnnxTensor.createTensor(
                 ortEnv, floatBuf,
@@ -84,6 +84,11 @@ object OnnxController {
         imgData.rewind()
         val stride = img.width * img.height
         val bmpData = IntArray(stride)
+        val imgBuf = ByteBuffer.allocate(DIM_PIXEL_SIZE * img.width * img.height)
+        val imgArr = ByteArray(DIM_PIXEL_SIZE * img.width * img.height)
+        img.copyPixelsToBuffer(imgBuf)
+        imgBuf.rewind()
+        imgBuf.get(imgArr)
         img.getPixels(bmpData, 0, img.width, 0, 0, img.width, img.height)
         for (i in bmpData.indices) {
             imgData.put(i * 3 + 2, (bmpData[i] shr 16 and 0xFF).toFloat())
@@ -91,6 +96,8 @@ object OnnxController {
             imgData.put( i * 3, (bmpData[i] and 0xFF).toFloat())
         }
         imgData.rewind()
+        val imgArr2 = FloatArray(DIM_PIXEL_SIZE * img.width * img.height)
+        imgData.get(imgArr2)
         return imgData
     }
 

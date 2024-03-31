@@ -7,6 +7,10 @@ from copy import deepcopy
 import cv2
 import numpy as np
 import onnxruntime
+from onnxruntime_extensions import get_library_path as _lib_path
+
+so = onnxruntime.SessionOptions()
+so.register_custom_ops_library(_lib_path())
 
 
 class SegmentAnythingONNX:
@@ -30,11 +34,11 @@ class SegmentAnythingONNX:
         else:
             logging.warning("No available providers for ONNXRuntime")
         self.encoder_session = onnxruntime.InferenceSession(
-            encoder_model_path, providers=providers
+            encoder_model_path, so, providers=providers
         )
         self.encoder_input_name = self.encoder_session.get_inputs()[0].name
         self.decoder_session = onnxruntime.InferenceSession(
-            decoder_model_path, providers=providers
+            decoder_model_path, so, providers=providers
         )
 
     def get_input_points(self, prompt):
@@ -87,7 +91,7 @@ class SegmentAnythingONNX:
         return coords
 
     def run_decoder(
-        self, image_embedding, original_size, transform_matrix, prompt
+            self, image_embedding, original_size, transform_matrix, prompt
     ):
         """Run decoder"""
         input_points, input_labels = self.get_input_points(prompt)
@@ -97,8 +101,8 @@ class SegmentAnythingONNX:
             [input_points, np.array([[0.0, 0.0]])], axis=0
         )[None, :, :]
         onnx_label = np.concatenate([input_labels, np.array([-1])], axis=0)[
-            None, :
-        ].astype(np.float32)
+                     None, :
+                     ].astype(np.float32)
         onnx_coord = self.apply_coords(
             onnx_coord, self.input_size, self.target_size
         ).astype(np.float32)
@@ -161,7 +165,7 @@ class SegmentAnythingONNX:
             output_masks.append(batch_masks)
         return np.array(output_masks)
 
-    def encode(self, cv_image, enhanced = False):
+    def encode(self, cv_image, enhanced=False, rawbytes=None):
         """
         Calculate embedding and metadata for a single image.
         """
@@ -191,7 +195,7 @@ class SegmentAnythingONNX:
             }
         else:
             encoder_inputs = {
-                self.encoder_input_name: cv_image
+                self.encoder_input_name: rawbytes
             }
         image_embedding = self.run_encoder(encoder_inputs)
         return {
