@@ -13,6 +13,7 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.lang.Float.min
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
+import java.nio.IntBuffer
 
 private const val DIM_PIXEL_SIZE = 3;
 private const val IMAGE_SIZE_X = 1024;
@@ -84,8 +85,8 @@ object OnnxController {
         imgData.rewind()
         val stride = img.width * img.height
         val bmpData = IntArray(stride)
-        val imgBuf = ByteBuffer.allocate(DIM_PIXEL_SIZE * img.width * img.height)
-        val imgArr = ByteArray(DIM_PIXEL_SIZE * img.width * img.height)
+        val imgBuf = ByteBuffer.allocate(img.getAllocationByteCount())
+        val imgArr = ByteArray(img.getAllocationByteCount())
         img.copyPixelsToBuffer(imgBuf)
         imgBuf.rewind()
         imgBuf.get(imgArr)
