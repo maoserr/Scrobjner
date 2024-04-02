@@ -10,7 +10,7 @@ import numpy as np
 
 from samexporter.sam_onnx import SegmentAnythingONNX
 
-enhance = True
+enhance = False
 
 if enhance:
     enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
@@ -67,11 +67,10 @@ if __name__ == "__main__":
         args.decoder_model,
     )
 
-    image = cv2.imread(args.image)
+    image = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGBA)
     prompt = json.load(open(args.prompt))
 
-    rawbytes = np.fromfile(args.image, dtype=np.uint8)
-    embedding = model.encode(image, enhance, rawbytes)
+    embedding = model.encode(image, enhance)
     masks = model.predict_masks(embedding, prompt)
 
     # Save the masks as a single image.

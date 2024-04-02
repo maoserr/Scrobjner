@@ -165,7 +165,7 @@ class SegmentAnythingONNX:
             output_masks.append(batch_masks)
         return np.array(output_masks)
 
-    def encode(self, cv_image, enhanced=False, rawbytes=None):
+    def encode(self, cv_image, enhanced=False):
         """
         Calculate embedding and metadata for a single image.
         """
@@ -195,7 +195,7 @@ class SegmentAnythingONNX:
             }
         else:
             encoder_inputs = {
-                self.encoder_input_name: rawbytes
+                self.encoder_input_name: cv_image
             }
         image_embedding = self.run_encoder(encoder_inputs)
         return {
