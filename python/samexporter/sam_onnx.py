@@ -194,8 +194,9 @@ class SegmentAnythingONNX:
                 self.encoder_input_name: cv_image.astype(np.float32),
             }
         else:
+            rgba_img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGBA)
             encoder_inputs = {
-                self.encoder_input_name: cv_image
+                self.encoder_input_name: rgba_img
             }
         image_embedding = self.run_encoder(encoder_inputs)
         return {

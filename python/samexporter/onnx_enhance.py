@@ -56,36 +56,25 @@ class RGBAToRGB(Step):
 
 class BytesToFloat(Step):
     """
-    Convert uint8 or float values in range 0..255 to floating point values in range 0..1
+    Cast uint8 to float
     """
 
-    def __init__(self, rescale_factor: float = 1 / 255, name: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None):
         """
         Args:
             name: Optional step name. Defaults to 'ImageBytesToFloat'
         """
         super().__init__(["data"], ["float_data"], name)
-        self.rescale_factor_ = rescale_factor
 
     def _create_graph_for_step(self, graph: onnx.GraphProto, onnx_opset: int):
         input_type_str, input_shape_str = self._get_input_type_and_shape_strs(graph, 0)
-        if input_type_str == "uint8":
-            optional_cast = f"""\
-                input_f = Cast <to = 1> ({self.input_names[0]})
-            """
-        else:
-            # no-op that optimizer will remove
-            optional_cast = f"input_f = Identity ({self.input_names[0]})"
 
         byte_to_float_graph = onnx.parser.parse_graph(
             f"""\
             byte_to_float ({input_type_str}[{input_shape_str}] {self.input_names[0]}) 
                 => (float[{input_shape_str}] {self.output_names[0]})
             {{
-                f_scale = Constant <value = float[1] {{{self.rescale_factor_}}}>()
-
-                {optional_cast}
-                {self.output_names[0]} = Mul(input_f, f_scale)
+                {self.output_names[0]} = Cast <to = 1> ({self.input_names[0]})
             }}
             """
         )
@@ -105,9 +94,8 @@ if __name__ == "__main__":
     pipeline.add_pre_processing(
         [
             RGBAToRGB(),
-            BytesToFloat(),
             add_ppp.Resize((684, 1024), policy="not_larger"),
-            add_ppp.ImageBytesToFloat(rescale_factor=1),  # Convert Y to float in range 0..1
+            BytesToFloat(),
         ]
     )
 

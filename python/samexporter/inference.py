@@ -10,7 +10,7 @@ import numpy as np
 
 from samexporter.sam_onnx import SegmentAnythingONNX
 
-enhance = False
+enhance = True
 
 if enhance:
     enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         args.decoder_model,
     )
 
-    image = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGBA)
+    image = cv2.imread(args.image)
     prompt = json.load(open(args.prompt))
 
     embedding = model.encode(image, enhance)

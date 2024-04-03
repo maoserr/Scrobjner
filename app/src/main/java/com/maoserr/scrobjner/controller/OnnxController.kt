@@ -15,7 +15,7 @@ import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
 
-private const val DIM_PIXEL_SIZE = 3;
+private const val DIM_PIXEL_SIZE = 4;
 private const val IMAGE_SIZE_X = 1024;
 private const val IMAGE_SIZE_Y = 684;
 
@@ -32,7 +32,7 @@ object OnnxController {
         sessionOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath())
 
         ortSesEnc = ortEnv.createSession(
-            comp.resources.openRawResource(R.raw.samenc)
+            comp.resources.openRawResource(R.raw.samenc_enh)
                 .readBytes(), sessionOptions
         )
         inputEncName = ortSesEnc.inputNames.iterator().next()
@@ -45,15 +45,19 @@ object OnnxController {
     }
 
     private fun encode(img: Bitmap): Array<Array<Array<FloatArray>>> {
-        val floatBuf = img2Float(img)
+        val imgBuf = ByteBuffer.allocate(
+            img.width*img.height* DIM_PIXEL_SIZE)
+        img.copyPixelsToBuffer(imgBuf)
+        imgBuf.rewind()
+
         ortEnv.use {
             val imgDat = OnnxTensor.createTensor(
-                ortEnv, floatBuf,
+                ortEnv, imgBuf,
                 longArrayOf(
                     img.height.toLong(),
                     img.width.toLong(),
                     DIM_PIXEL_SIZE.toLong()
-                )
+                ),OnnxJavaType.UINT8
             )
             imgDat.use {
                 val encInput = mapOf(inputEncName to imgDat)
@@ -65,41 +69,6 @@ object OnnxController {
                 }
             }
         }
-    }
-
-    private fun scaleImg(img: Bitmap): Bitmap{
-        val scaleX = IMAGE_SIZE_X.toFloat() / img.width
-        val scaleY = IMAGE_SIZE_Y.toFloat() / img.height
-        val scale = min(scaleX, scaleY)
-        val mat = Matrix()
-        mat.postScale(scale, scale)
-        val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
-        img.recycle()
-        return resized
-    }
-
-    private fun img2Float(img: Bitmap): FloatBuffer{
-        val imgData = FloatBuffer.allocate(
-            DIM_PIXEL_SIZE * img.width * img.height
-        )
-        imgData.rewind()
-        val stride = img.width * img.height
-        val bmpData = IntArray(stride)
-        val imgBuf = ByteBuffer.allocate(img.getAllocationByteCount())
-        val imgArr = ByteArray(img.getAllocationByteCount())
-        img.copyPixelsToBuffer(imgBuf)
-        imgBuf.rewind()
-        imgBuf.get(imgArr)
-        img.getPixels(bmpData, 0, img.width, 0, 0, img.width, img.height)
-        for (i in bmpData.indices) {
-            imgData.put(i * 3 + 2, (bmpData[i] shr 16 and 0xFF).toFloat())
-            imgData.put( i * 3 + 1, (bmpData[i] shr 8 and 0xFF).toFloat())
-            imgData.put( i * 3, (bmpData[i] and 0xFF).toFloat())
-        }
-        imgData.rewind()
-        val imgArr2 = FloatArray(DIM_PIXEL_SIZE * img.width * img.height)
-        imgData.get(imgArr2)
-        return imgData
     }
 
     private fun decode(embeds:OnnxTensor):Array<Array<Array<FloatArray>>> {
@@ -145,9 +114,31 @@ object OnnxController {
         }
     }
 
-    fun runModel(img: Bitmap) {
-        val masks = encode(img)
-        val mask = masks[0][0]
+    fun runModel(img: Bitmap): Array<FloatArray> {
+        val imgBuf = ByteBuffer.allocate(
+            img.width*img.height* DIM_PIXEL_SIZE)
+        img.copyPixelsToBuffer(imgBuf)
+        imgBuf.rewind()
+
+        ortEnv.use {
+            val imgDat = OnnxTensor.createTensor(
+                ortEnv, imgBuf,
+                longArrayOf(
+                    img.height.toLong(),
+                    img.width.toLong(),
+                    DIM_PIXEL_SIZE.toLong()
+                ),OnnxJavaType.UINT8
+            )
+            imgDat.use {
+                val encInput = mapOf(inputEncName to imgDat)
+                val out = ortSesEnc.run(encInput)
+                out.use {
+                    val rawOutput = out?.get(0)
+                    val res = decode(rawOutput as OnnxTensor)
+                    return res[0][0]
+                }
+            }
+        }
     }
     fun release() {
         ortEnv.close()
