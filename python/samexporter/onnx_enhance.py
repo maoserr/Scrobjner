@@ -4,8 +4,11 @@ import onnx
 from onnxruntime_extensions.tools import add_pre_post_processing_to_model as add_ppp
 from onnxruntime_extensions.tools.pre_post_processing.step import Step
 
-ONNX_MODEL = '../app/src/main/res/raw/samenc.onnx'
-ONNX_MODEL_WITH_PRE_POST_PROCESSING = '../app/src/main/res/raw/samenc_enh.onnx'
+ONNX_MODEL_ENC = '../app/src/main/res/raw/samenc.onnx'
+ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING = '../app/src/main/res/raw/samenc_enh.onnx'
+
+ONNX_MODEL_DEC = '../app/src/main/res/raw/samdec.onnx'
+ONNX_MODEL_DEC_WITH_POST_PROCESSING = '../app/src/main/res/raw/samdec_enh.onnx'
 
 
 class RGBAToRGB(Step):
@@ -24,7 +27,7 @@ class RGBAToRGB(Step):
     def _create_graph_for_step(self, graph: onnx.GraphProto, onnx_opset: int):
         input_type_str, input_shape_str = self._get_input_type_and_shape_strs(graph, 0)
         input_dims = input_shape_str.split(",")
-        output_shape_tr = ",".join(input_dims[:2]+['3'])
+        output_shape_tr = ",".join(input_dims[:2] + ['3'])
         split_dim = input_dims[self._axis]
 
         if split_dim.isdigit():
@@ -83,11 +86,8 @@ class BytesToFloat(Step):
         return byte_to_float_graph
 
 
-if __name__ == "__main__":
-    # ORT 1.14 and later support ONNX opset 18, which added antialiasing to the Resize operator.
-    # Results are much better when that can be used. Minimum opset is 16.
-    onnx_opset = 17
-    model = onnx.load(ONNX_MODEL)
+def run_enc_pipe():
+    model = onnx.load(ONNX_MODEL_ENC)
     inputs = [add_ppp.create_named_value("image", onnx.TensorProto.UINT8, ["h_in", "w_in", 4])]
 
     pipeline = add_ppp.PrePostProcessor(inputs, onnx_opset)
@@ -100,4 +100,39 @@ if __name__ == "__main__":
     )
 
     new_model = pipeline.run(model)
-    onnx.save_model(new_model, ONNX_MODEL_WITH_PRE_POST_PROCESSING)
+    onnx.save_model(new_model, ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING)
+
+
+def run_dec_pipe():
+    model = onnx.load(ONNX_MODEL_DEC)
+    inputs = [
+        add_ppp.create_named_value("image_embeddings", onnx.TensorProto.FLOAT32, [1, 256, 64, 64]),
+        add_ppp.create_named_value("point_coords", onnx.TensorProto.FLOAT32, [1, "num_points", 2]),
+        add_ppp.create_named_value("point_labels", onnx.TensorProto.FLOAT32, [1, "num_points"]),
+        add_ppp.create_named_value("mask_input", onnx.TensorProto.FLOAT32, [1, 1, 256, 256]),
+        add_ppp.create_named_value("has_mask_input", onnx.TensorProto.FLOAT32, [1]),
+        add_ppp.create_named_value("orig_im_size", onnx.TensorProto.FLOAT32, [2]),
+    ]
+
+    pipeline = add_ppp.PrePostProcessor(inputs, onnx_opset)
+    pipeline.add_post_processing(
+        [
+            add_ppp.FloatToImageBytes()
+        ]
+    )
+
+    new_model = pipeline.run(model)
+    onnx.save_model(new_model, ONNX_MODEL_DEC_WITH_POST_PROCESSING)
+
+
+if __name__ == "__main__":
+    # ORT 1.14 and later support ONNX opset 18, which added antialiasing to the Resize operator.
+    # Results are much better when that can be used. Minimum opset is 16.
+    onnx_opset = 17
+    run_enc = False
+    run_dec = True
+    if run_enc:
+        run_enc_pipe()
+
+    if run_dec:
+        run_dec_pipe()
