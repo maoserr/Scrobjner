@@ -49,6 +49,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--return-single-mask",
+    default=True,
     action="store_true",
     help=(
         "If true, the exported ONNX model will only return the best mask, "

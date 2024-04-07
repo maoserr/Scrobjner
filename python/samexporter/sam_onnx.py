@@ -91,7 +91,8 @@ class SegmentAnythingONNX:
         return coords
 
     def run_decoder(
-            self, image_embedding, original_size, transform_matrix, prompt
+            self, image_embedding, original_size, transform_matrix, prompt,
+            enhance
     ):
         """Run decoder"""
         input_points, input_labels = self.get_input_points(prompt)
@@ -136,12 +137,15 @@ class SegmentAnythingONNX:
         print(onnx_mask_input.shape)
         print(onnx_has_mask_input.shape)
         print(np.array(self.input_size, dtype=np.float32).shape)
-        masks, a, b = self.decoder_session.run(None, decoder_inputs)
+        a, _, c = self.decoder_session.run(None, decoder_inputs)
+
+        if enhance:
+            return c
 
         # Transform the masks back to the original image size.
         inv_transform_matrix = np.linalg.inv(transform_matrix)
         transformed_masks = self.transform_masks(
-            masks, original_size, inv_transform_matrix
+            a, original_size, inv_transform_matrix
         )
 
         return transformed_masks
@@ -205,7 +209,7 @@ class SegmentAnythingONNX:
             "transform_matrix": transform_matrix,
         }
 
-    def predict_masks(self, embedding, prompt):
+    def predict_masks(self, embedding, prompt, enhance=False):
         """
         Predict masks for a single image.
         """
@@ -214,6 +218,7 @@ class SegmentAnythingONNX:
             embedding["original_size"],
             embedding["transform_matrix"],
             prompt,
+            enhance
         )
 
         return masks

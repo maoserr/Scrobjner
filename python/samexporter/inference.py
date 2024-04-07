@@ -77,7 +77,7 @@ if __name__ == "__main__":
     prompt = json.load(open(args.prompt))
 
     embedding = model.encode(image, enhance)
-    masks = model.predict_masks(embedding, prompt)
+    masks = model.predict_masks(embedding, prompt, enhance_dec)
 
     # Save the masks as a single image.
     mask = np.zeros((masks.shape[2], masks.shape[3], 3), dtype=np.uint8)
