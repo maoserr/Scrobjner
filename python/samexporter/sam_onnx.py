@@ -136,7 +136,7 @@ class SegmentAnythingONNX:
         print(onnx_mask_input.shape)
         print(onnx_has_mask_input.shape)
         print(np.array(self.input_size, dtype=np.float32).shape)
-        masks, _, _ = self.decoder_session.run(None, decoder_inputs)
+        masks, a, b = self.decoder_session.run(None, decoder_inputs)
 
         # Transform the masks back to the original image size.
         inv_transform_matrix = np.linalg.inv(transform_matrix)

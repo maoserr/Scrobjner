@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import onnx
+from onnx.helper import make_tensor, make_node, make_graph, make_tensor_value_info
 from onnxruntime_extensions.tools import add_pre_post_processing_to_model as add_ppp
 from onnxruntime_extensions.tools.pre_post_processing.step import Step
 
@@ -86,6 +87,36 @@ class BytesToFloat(Step):
         return byte_to_float_graph
 
 
+class RGBToRGBA(Step):
+    def __init__(self, name: Optional[str] = None):
+        """
+        Remove alpha channel from RGBA data
+        :param name: Optional name
+        """
+        super().__init__(["rgb_data"], ["rgba_data"], name)
+        self._axis = -1
+
+    def _create_graph_for_step(self, graph: onnx.GraphProto, onnx_opset: int):
+        _, input_shape_str = self._get_input_type_and_shape_strs(graph, 0)
+        inpt_shape = input_shape_str.split(",")
+        out_shape = inpt_shape[0:2] + [4]
+
+        alpha = make_node(
+            "ConstantOfShape",
+            inputs=[inpt_shape[0], inpt_shape[1]],
+            outputs=["alpha"],
+            value=make_tensor("value", onnx.TensorProto.UINT8, [1], [255]),
+        )
+        concat = make_node(
+            "Concat", inputs=["rgb_data", "alpha"], outputs=["rgba_data"], axis=-1
+        )
+        graph = make_graph([alpha, concat], "rgb_to_rgba",
+                          [make_tensor_value_info(self.input_names[0], onnx.TensorProto.UINT8, inpt_shape)],
+                          [make_tensor_value_info(self.output_names[0], onnx.TensorProto.UINT8, out_shape)]
+                          )
+        return graph
+
+
 def run_enc_pipe():
     model = onnx.load(ONNX_MODEL_ENC)
     inputs = [add_ppp.create_named_value("image", onnx.TensorProto.UINT8, ["h_in", "w_in", 4])]
@@ -94,7 +125,7 @@ def run_enc_pipe():
     pipeline.add_pre_processing(
         [
             RGBAToRGB(),
-            add_ppp.Resize((684, 1024), policy="not_larger"),
+            add_ppp.Resize(1024, policy="not_larger"),
             BytesToFloat(),
         ]
     )
@@ -106,18 +137,19 @@ def run_enc_pipe():
 def run_dec_pipe():
     model = onnx.load(ONNX_MODEL_DEC)
     inputs = [
-        add_ppp.create_named_value("image_embeddings", onnx.TensorProto.FLOAT32, [1, 256, 64, 64]),
-        add_ppp.create_named_value("point_coords", onnx.TensorProto.FLOAT32, [1, "num_points", 2]),
-        add_ppp.create_named_value("point_labels", onnx.TensorProto.FLOAT32, [1, "num_points"]),
-        add_ppp.create_named_value("mask_input", onnx.TensorProto.FLOAT32, [1, 1, 256, 256]),
-        add_ppp.create_named_value("has_mask_input", onnx.TensorProto.FLOAT32, [1]),
-        add_ppp.create_named_value("orig_im_size", onnx.TensorProto.FLOAT32, [2]),
+        add_ppp.create_named_value("image_embeddings", onnx.TensorProto.FLOAT, [1, 256, 64, 64]),
+        add_ppp.create_named_value("point_coords", onnx.TensorProto.FLOAT, [1, "num_points", 2]),
+        add_ppp.create_named_value("point_labels", onnx.TensorProto.FLOAT, [1, "num_points"]),
+        add_ppp.create_named_value("mask_input", onnx.TensorProto.FLOAT, [1, 1, 256, 256]),
+        add_ppp.create_named_value("has_mask_input", onnx.TensorProto.FLOAT, [1]),
+        add_ppp.create_named_value("orig_im_size", onnx.TensorProto.FLOAT, [2]),
     ]
 
     pipeline = add_ppp.PrePostProcessor(inputs, onnx_opset)
     pipeline.add_post_processing(
         [
-            add_ppp.FloatToImageBytes()
+            add_ppp.Squeeze([0]),
+            add_ppp.FloatToImageBytes(),
         ]
     )
 

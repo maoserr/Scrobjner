@@ -11,11 +11,17 @@ import numpy as np
 from samexporter.sam_onnx import SegmentAnythingONNX
 
 enhance = True
-
+enhance_dec = False
 if enhance:
     enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
 else:
     enc_mod = r"../app/src/main/res/raw/samenc.onnx"
+
+
+if enhance_dec:
+    dec_mod = r"../app/src/main/res/raw/samdec_enh.onnx"
+else:
+    dec_mod = r"../app/src/main/res/raw/samdec.onnx"
 
 def str2bool(v):
     return v.lower() in ("true", "1")
@@ -31,7 +37,7 @@ argparser.add_argument(
 argparser.add_argument(
     "--decoder_model",
     type=str,
-    default=r"../app/src/main/res/raw/samdec.onnx",
+    default=dec_mod,
     help="Path to the ONNX decoder model",
 )
 argparser.add_argument(
