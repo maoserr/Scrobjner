@@ -3,8 +3,8 @@ from typing import List, Optional
 import onnx
 from onnx.helper import make_tensor, make_node, make_graph, make_tensor_value_info
 from onnxruntime_extensions.tools import add_pre_post_processing_to_model as add_ppp
-from onnxruntime_extensions.tools.pre_post_processing.step import Step
-from onnxsim import simplify
+from onnxruntime_extensions.tools.pre_post_processing.step import Step, Debug
+from onnxsim import simplify, model_info
 
 ONNX_MODEL_ENC = '../app/src/main/res/raw/samenc.onnx'
 ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING = '../app/src/main/res/raw/samenc_enh.onnx'
@@ -55,7 +55,7 @@ class RGBAToRGB(Step):
             }}
             """
         )
-
+        print(onnx.printer.to_text(removealpha_graph))
         return removealpha_graph
 
 
@@ -83,7 +83,7 @@ class BytesToFloat(Step):
             }}
             """
         )
-
+        print(onnx.printer.to_text(byte_to_float_graph))
         onnx.checker.check_graph(byte_to_float_graph)
         return byte_to_float_graph
 
@@ -94,49 +94,98 @@ class MaskToRGBA(Step):
         Remove alpha channel from RGBA data
         :param name: Optional name
         """
-        super().__init__(["mask_data"], ["rgba_data"], name)
+        super().__init__(["mask_data", "orig_im_size"], ["rgba_data"], name)
         self._axis = -1
 
     def _create_graph_for_step(self, graph: onnx.GraphProto, onnx_opset: int):
         _, input_shape_str = self._get_input_type_and_shape_strs(graph, 0)
         inpt_shape = input_shape_str.split(",")
-        out_shape = inpt_shape[0:2] + [4]
 
         shape_cast = make_node(
             "Cast",
-            inputs=["orig_im_size"],
+            inputs=[self.input_names[1]],
             outputs=["im_size"],
             to=onnx.TensorProto.INT64
         )
 
+        sq_ax = make_node(
+            "Constant",
+            inputs=[],
+            outputs=["sq_axe"],
+            value=make_tensor(name="const_tensor", data_type=onnx.TensorProto.INT64, dims=[1], vals=[-1]),
+        )
+
         r = make_node(
             "ConstantOfShape",
-            inputs=["orig_im_size"],
-            outputs=["red"],
+            inputs=["im_size"],
+            outputs=["red_2d"],
             value=make_tensor("value", onnx.TensorProto.UINT8, [1], [255]),
         )
+        r_sq = make_node(
+            "Unsqueeze",
+            inputs=["red_2d", "sq_axe"],
+            outputs=["red"]
+        )
+
         g = make_node(
             "ConstantOfShape",
-            inputs=["orig_im_size"],
-            outputs=["green"],
+            inputs=["im_size"],
+            outputs=["green_2d"],
             value=make_tensor("value", onnx.TensorProto.UINT8, [1], [0]),
         )
+        g_sq = make_node(
+            "Unsqueeze",
+            inputs=["green_2d", "sq_axe"],
+            outputs=["green"]
+        )
+
         b = make_node(
             "ConstantOfShape",
-            inputs=["orig_im_size"],
-            outputs=["blue"],
+            inputs=["im_size"],
+            outputs=["blue_2d"],
             value=make_tensor("value", onnx.TensorProto.UINT8, [1], [0]),
         )
-        concat = make_node(
-            "Concat", inputs=["red", "green", "blue", "mask_data"], outputs=["rgba_data"], axis=-1
+        b_sq = make_node(
+            "Unsqueeze",
+            inputs=["blue_2d", "sq_axe"],
+            outputs=["blue"]
         )
-        graph = make_graph([r, g, b, concat], "mask_to_rgba",
+
+        mask_sq = make_node(
+            "Unsqueeze",
+            inputs=[self.input_names[0], "sq_axe"],
+            outputs=["mask_sq"]
+        )
+        concat = make_node(
+            "Concat",
+            inputs=["red", "green", "blue", "mask_sq"],
+            outputs=["rgba_data"],
+            axis=-1
+        )
+
+        # ,  b, b_sq, mask_sq, concat
+        graph = make_graph([
+            shape_cast,
+            sq_ax,
+            r,
+            r_sq,
+            g,
+            g_sq,
+            b,
+            b_sq,
+            mask_sq,
+            concat
+        ], "mask_to_rgba",
                            [
                                make_tensor_value_info(self.input_names[0], onnx.TensorProto.UINT8, inpt_shape),
-                               make_tensor_value_info("orig_im_size", onnx.TensorProto.FLOAT, [2])
-                            ],
-                           [make_tensor_value_info(self.output_names[0], onnx.TensorProto.UINT8, out_shape)]
+                               make_tensor_value_info(self.input_names[1], onnx.TensorProto.FLOAT, [2])
+                           ],
+                           [
+                               make_tensor_value_info(self.output_names[0], onnx.TensorProto.UINT8,
+                                                      inpt_shape[0:2] + [4])
+                           ]
                            )
+        print(onnx.printer.to_text(graph))
         return graph
 
 
@@ -158,6 +207,7 @@ def run_enc_pipe():
     model_simp, check = simplify(new_model)
 
     assert check, "Simplified ONNX model could not be validated"
+    model_info.print_simplifying_info(new_model, model)
     onnx.save_model(model_simp, ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING)
 
 
@@ -186,7 +236,8 @@ def run_dec_pipe():
     model_simp, check = simplify(new_model)
 
     assert check, "Simplified ONNX model could not be validated"
-    onnx.save_model(model_simp, ONNX_MODEL_DEC_WITH_POST_PROCESSING)
+    model_info.print_simplifying_info(new_model, model)
+    onnx.save_model(new_model, ONNX_MODEL_DEC_WITH_POST_PROCESSING)
 
 
 if __name__ == "__main__":

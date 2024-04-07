@@ -11,7 +11,7 @@ import numpy as np
 from samexporter.sam_onnx import SegmentAnythingONNX
 
 enhance = True
-enhance_dec = False
+enhance_dec = True
 if enhance:
     enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
 else:
@@ -79,29 +79,32 @@ if __name__ == "__main__":
     embedding = model.encode(image, enhance)
     masks = model.predict_masks(embedding, prompt, enhance_dec)
 
-    # Save the masks as a single image.
-    mask = np.zeros((masks.shape[2], masks.shape[3], 3), dtype=np.uint8)
-    for m in masks[0, :, :, :]:
-        mask[m > 0.0] = [255, 0, 0]
+    if enhance_dec:
+        visualized = masks
+    else:
+        # Save the masks as a single image.
+        mask = np.zeros((masks.shape[2], masks.shape[3], 3), dtype=np.uint8)
+        for m in masks[0, :, :, :]:
+            mask[m > 0.0] = [255, 0, 0]
 
-    # Binding image and mask
-    visualized = cv2.addWeighted(image, 0.5, mask, 0.5, 0)
+        # Binding image and mask
+        visualized = cv2.addWeighted(image, 0.5, mask, 0.5, 0)
 
-    # Draw the prompt points and rectangles.
-    for p in prompt:
-        if p["type"] == "point":
-            color = (
-                (0, 255, 0) if p["label"] == 1 else (0, 0, 255)
-            )  # green for positive, red for negative
-            cv2.circle(visualized, (p["data"][0], p["data"][1]), 10, color, -1)
-        elif p["type"] == "rectangle":
-            cv2.rectangle(
-                visualized,
-                (p["data"][0], p["data"][1]),
-                (p["data"][2], p["data"][3]),
-                (0, 255, 0),
-                2,
-            )
+        # Draw the prompt points and rectangles.
+        for p in prompt:
+            if p["type"] == "point":
+                color = (
+                    (0, 255, 0) if p["label"] == 1 else (0, 0, 255)
+                )  # green for positive, red for negative
+                cv2.circle(visualized, (p["data"][0], p["data"][1]), 10, color, -1)
+            elif p["type"] == "rectangle":
+                cv2.rectangle(
+                    visualized,
+                    (p["data"][0], p["data"][1]),
+                    (p["data"][2], p["data"][3]),
+                    (0, 255, 0),
+                    2,
+                )
 
     if args.output is not None:
         pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)

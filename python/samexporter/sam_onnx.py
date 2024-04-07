@@ -131,6 +131,8 @@ class SegmentAnythingONNX:
             "has_mask_input": onnx_has_mask_input,
             "orig_im_size": np.array(self.input_size, dtype=np.float32),
         }
+        if enhance:
+            decoder_inputs["_ppp2_orig_im_size"] = np.array(self.input_size, dtype=np.float32)
         print(image_embedding.shape)
         print(onnx_coord.shape)
         print(onnx_label.shape)
