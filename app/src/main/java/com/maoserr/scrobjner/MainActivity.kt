@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
         shouldShowCamera.value = false
         val uri = Uri.fromFile(file)
         val bit = BitmapFactory.decodeFile(file.absolutePath)
-        OnnxController.runModel(bit)
+        val outbit = OnnxController.runModel(bit)
         Log.i("Mao", "Image captured: $uri")
         this.handleClose()
         photoUri.value = uri

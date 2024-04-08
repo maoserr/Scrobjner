@@ -1,23 +1,21 @@
 package com.maoserr.scrobjner.controller
 
-import ai.onnxruntime.*
+import ai.onnxruntime.OnnxJavaType
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
 import ai.onnxruntime.extensions.OrtxPackage
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.toNDArray
 import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
-import java.lang.Float.min
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
-import java.nio.IntBuffer
 
 private const val DIM_PIXEL_SIZE = 4;
-private const val IMAGE_SIZE_X = 1024;
-private const val IMAGE_SIZE_Y = 684;
 
 object OnnxController {
     private var ortEnv: OrtEnvironment = OrtEnvironment.getEnvironment()
@@ -38,40 +36,13 @@ object OnnxController {
         inputEncName = ortSesEnc.inputNames.iterator().next()
 
         ortSesDec = ortEnv.createSession(
-            comp.resources.openRawResource(R.raw.samdec)
+            comp.resources.openRawResource(R.raw.samdec_enh)
                 .readBytes(), sessionOptions
         )
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    private fun encode(img: Bitmap): Array<Array<Array<FloatArray>>> {
-        val imgBuf = ByteBuffer.allocate(
-            img.width*img.height* DIM_PIXEL_SIZE)
-        img.copyPixelsToBuffer(imgBuf)
-        imgBuf.rewind()
-
-        ortEnv.use {
-            val imgDat = OnnxTensor.createTensor(
-                ortEnv, imgBuf,
-                longArrayOf(
-                    img.height.toLong(),
-                    img.width.toLong(),
-                    DIM_PIXEL_SIZE.toLong()
-                ),OnnxJavaType.UINT8
-            )
-            imgDat.use {
-                val encInput = mapOf(inputEncName to imgDat)
-                val out = ortSesEnc.run(encInput)
-                out.use {
-                    val rawOutput = out?.get(0)
-                    val res = decode(rawOutput as OnnxTensor)
-                    return res
-                }
-            }
-        }
-    }
-
-    private fun decode(embeds:OnnxTensor):Array<Array<Array<FloatArray>>> {
+    private fun decode(embeds:OnnxTensor):Pair<Float, Array<Array<ByteArray>>>  {
         val ptCoords1= mk[
             mk[327.1111f,426.66666f],
             mk[241.77777f,341.33334f],
@@ -99,13 +70,16 @@ object OnnxController {
                                 "point_labels" to ptLbls,
                                 "mask_input" to maskInput,
                                 "has_mask_input" to hasMaskInp,
-                                "orig_im_size" to origImSize
+                                "orig_im_size" to origImSize,
+                                "_ppp2_orig_im_size" to origImSize
                             )
                             val out = ortSesDec.run(decInput)
                             out.use {
                                 @Suppress("UNCHECKED_CAST")
-                                val res = out.get(0).value as Array<Array<Array<FloatArray>>>
-                                return res
+                                val iou = (out[0].value as Array<FloatArray>)[0][0]
+                                @Suppress("UNCHECKED_CAST")
+                                val outMask = out[2].value as Array<Array<ByteArray>>
+                                return iou to outMask
                             }
                         }
                     }
@@ -114,7 +88,7 @@ object OnnxController {
         }
     }
 
-    fun runModel(img: Bitmap): Array<FloatArray> {
+    fun runModel(img: Bitmap): Bitmap {
         val imgBuf = ByteBuffer.allocate(
             img.width*img.height* DIM_PIXEL_SIZE)
         img.copyPixelsToBuffer(imgBuf)
@@ -134,8 +108,15 @@ object OnnxController {
                 val out = ortSesEnc.run(encInput)
                 out.use {
                     val rawOutput = out?.get(0)
-                    val res = decode(rawOutput as OnnxTensor)
-                    return res[0][0]
+                    val (iou, mask) = decode(rawOutput as OnnxTensor)
+                    val mask2 = mask.flatten().toTypedArray()
+                    imgBuf.rewind()
+                    for (e in mask2){
+                        imgBuf.put(e)
+                    }
+                    imgBuf.rewind()
+                    img.copyPixelsFromBuffer(imgBuf)
+                    return img
                 }
             }
         }

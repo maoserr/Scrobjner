@@ -207,7 +207,7 @@ def run_enc_pipe():
     model_simp, check = simplify(new_model)
 
     assert check, "Simplified ONNX model could not be validated"
-    model_info.print_simplifying_info(new_model, model)
+    model_info.print_simplifying_info(new_model, model_simp)
     onnx.save_model(model_simp, ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING)
 
 
@@ -236,8 +236,8 @@ def run_dec_pipe():
     model_simp, check = simplify(new_model)
 
     assert check, "Simplified ONNX model could not be validated"
-    model_info.print_simplifying_info(new_model, model)
-    onnx.save_model(new_model, ONNX_MODEL_DEC_WITH_POST_PROCESSING)
+    model_info.print_simplifying_info(new_model, model_simp)
+    onnx.save_model(model_simp, ONNX_MODEL_DEC_WITH_POST_PROCESSING)
 
 
 if __name__ == "__main__":
