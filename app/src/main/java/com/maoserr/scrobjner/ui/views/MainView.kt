@@ -4,17 +4,17 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
 import com.maoserr.scrobjner.controller.OnnxController
 
 
@@ -27,6 +27,10 @@ fun Greeting(
     photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY)
 ) {
     var presses by remember { mutableIntStateOf(0) }
+    val sdcard = Environment.getExternalStorageDirectory().absolutePath
+    val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
+    val img = bit.asImageBitmap()
+    var outbit = bit
     Scaffold(
         topBar = {
             TopAppBar(
@@ -66,31 +70,15 @@ fun Greeting(
             Button(onClick = {
                 val sdcard = Environment.getExternalStorageDirectory().absolutePath
                 val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
-                OnnxController.runModel(bit)
+                outbit = OnnxController.runModel(bit)
                 Log.i("Mao", "Ran model.")
             }) {
                 Text("Check")
             }
-            Text("image1")
-            if (showPhoto.value) {
-                Text("image")
-                Image(
-                    painter = rememberAsyncImagePainter(photoUri.value),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
+            Canvas(modifier = Modifier.fillMaxSize(),){
+                drawImage(img)
+                drawImage(outbit.asImageBitmap())
             }
-            Text(
-                modifier = Modifier.padding(8.dp),
-                text =
-                """
-                    This is an example of a scaffold. It uses the Scaffold composable's parameters to create a screen with a simple top app bar, bottom app bar, and floating action button.
-
-                    It also contains some basic inner content, such as this text.
-
-                    You have pressed the floating action button $presses times.
-                """.trimIndent(),
-            )
         }
     }
 
