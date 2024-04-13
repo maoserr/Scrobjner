@@ -1,5 +1,6 @@
 package com.maoserr.scrobjner
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -23,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     private var showPhoto: MutableState<Boolean> = mutableStateOf(false)
     private var photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY)
-
+    private var outbit: MutableState<Bitmap?> = mutableStateOf(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +36,8 @@ class MainActivity : ComponentActivity() {
                         onClose = ::handleClose,
                     )
                 } else {
-                    Greeting( shouldShowCamera, showPhoto, photoUri)
+                    Greeting( shouldShowCamera, showPhoto, photoUri,
+                    )
                 }
             }
         }

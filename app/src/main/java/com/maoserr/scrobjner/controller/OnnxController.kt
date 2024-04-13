@@ -6,6 +6,7 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.extensions.OrtxPackage
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
 import org.jetbrains.kotlinx.multik.api.mk
@@ -14,6 +15,7 @@ import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
+import kotlin.math.min
 
 private const val DIM_PIXEL_SIZE = 4;
 
@@ -40,6 +42,17 @@ object OnnxController {
                 .readBytes(), sessionOptions
         )
         inputDecName = ortSesDec.inputNames.iterator().next()
+    }
+
+    fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap{
+        val scaleX = targetW.toFloat() / img.width
+        val scaleY = targetH.toFloat() / img.height
+        val scale = min(scaleX, scaleY)
+        val mat = Matrix()
+        mat.postScale(scale, scale)
+        val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
+        img.recycle()
+        return resized
     }
 
     private fun decode(embeds:OnnxTensor):Pair<Float, Array<Array<ByteArray>>>  {
@@ -93,6 +106,10 @@ object OnnxController {
             img.width*img.height* DIM_PIXEL_SIZE)
         img.copyPixelsToBuffer(imgBuf)
         imgBuf.rewind()
+        val outbuf = ByteBuffer.allocate(
+            1024*684* DIM_PIXEL_SIZE
+        )
+        val bmp = Bitmap.createBitmap(1024, 684, Bitmap.Config.ARGB_8888)
 
         ortEnv.use {
             val imgDat = OnnxTensor.createTensor(
@@ -110,13 +127,13 @@ object OnnxController {
                     val rawOutput = out?.get(0)
                     val (iou, mask) = decode(rawOutput as OnnxTensor)
                     val mask2 = mask.flatten().toTypedArray()
-                    imgBuf.rewind()
+                    outbuf.rewind()
                     for (e in mask2){
-                        imgBuf.put(e)
+                        outbuf.put(e)
                     }
-                    imgBuf.rewind()
-                    img.copyPixelsFromBuffer(imgBuf)
-                    return img
+                    outbuf.rewind()
+                    bmp.copyPixelsFromBuffer(outbuf)
+                    return bmp
                 }
             }
         }

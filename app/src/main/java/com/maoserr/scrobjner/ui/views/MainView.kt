@@ -1,22 +1,34 @@
 package com.maoserr.scrobjner.ui.views
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Matrix
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.maoserr.scrobjner.controller.OnnxController
 
+fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
+    val bmOverlay = Bitmap.createBitmap(bmp1.width, bmp1.height, bmp1.config)
+    val canvas: Canvas = Canvas(bmOverlay)
+    canvas.drawBitmap(bmp1, Matrix(), null)
+    canvas.drawBitmap(bmp2, Matrix(), null)
+    return bmOverlay
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
@@ -24,13 +36,13 @@ import com.maoserr.scrobjner.controller.OnnxController
 fun Greeting(
     showCam: MutableState<Boolean> = mutableStateOf(false),
     showPhoto: MutableState<Boolean> = mutableStateOf(false),
-    photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY)
+    photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY),
 ) {
     var presses by remember { mutableIntStateOf(0) }
     val sdcard = Environment.getExternalStorageDirectory().absolutePath
     val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
-    val img = bit.asImageBitmap()
-    var outbit = bit
+    val img = OnnxController.scaleImg(bit).asImageBitmap()
+    val outbit: MutableState<Bitmap?> = remember { mutableStateOf(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -69,15 +81,19 @@ fun Greeting(
         ) {
             Button(onClick = {
                 val sdcard = Environment.getExternalStorageDirectory().absolutePath
-                val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
-                outbit = OnnxController.runModel(bit)
+                val modbit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
+                val scbit = OnnxController.scaleImg(modbit)
+                outbit.value = overlay(scbit, OnnxController.runModel(scbit))
                 Log.i("Mao", "Ran model.")
             }) {
                 Text("Check")
             }
-            Canvas(modifier = Modifier.fillMaxSize(),){
-                drawImage(img)
-                drawImage(outbit.asImageBitmap())
+
+            outbit.value?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = "out"
+                )
             }
         }
     }
