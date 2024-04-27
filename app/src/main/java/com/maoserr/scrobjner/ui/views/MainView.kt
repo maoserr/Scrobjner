@@ -38,10 +38,8 @@ fun Greeting(
     showPhoto: MutableState<Boolean> = mutableStateOf(false),
     photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY),
 ) {
-    var presses by remember { mutableIntStateOf(0) }
-    val sdcard = Environment.getExternalStorageDirectory().absolutePath
-    val bit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
-    val img = OnnxController.scaleImg(bit).asImageBitmap()
+    val bit = BitmapFactory.decodeFile("/sdcard/Pictures/truck.jpg")
+    val scbit = OnnxController.scaleImg(bit)
     val outbit: MutableState<Bitmap?> = remember { mutableStateOf(null) }
     Scaffold(
         topBar = {
@@ -79,11 +77,13 @@ fun Greeting(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Image(
+                bitmap = scbit.asImageBitmap(),"Click"
+            )
             Button(onClick = {
-                val sdcard = Environment.getExternalStorageDirectory().absolutePath
-                val modbit = BitmapFactory.decodeFile("$sdcard/Pictures/truck.jpg")
-                val scbit = OnnxController.scaleImg(modbit)
-                outbit.value = overlay(scbit, OnnxController.runModel(scbit))
+                val modres = OnnxController.runModel(scbit,
+                    Pair(3f,3f),Pair(0f,0f),Pair(100f,100f))
+                outbit.value = overlay(scbit, modres)
                 Log.i("Mao", "Ran model.")
             }) {
                 Text("Check")
