@@ -1,13 +1,14 @@
 package com.maoserr.scrobjner.ui.views
 
+import android.R.attr.bitmap
+import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
-import android.os.Environment
 import android.util.Log
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,15 +18,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.maoserr.scrobjner.controller.OnnxController
+import com.maoserr.scrobjner.utils.TouchableFeedback
 import com.maoserr.scrobjner.utils.picker
+
 
 fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
     val bmOverlay = Bitmap.createBitmap(bmp1.width, bmp1.height, bmp1.config)
@@ -44,8 +47,8 @@ fun Greeting(
     photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY),
 ) {
     val bit = remember { mutableStateOf(Uri.EMPTY)}
-//    val scbit = OnnxController.scaleImg(bit)
     val outbit: MutableState<Bitmap?> = remember { mutableStateOf(null) }
+    val res = LocalContext.current.contentResolver
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,24 +85,26 @@ fun Greeting(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-//            AsyncImage(
-//                model = bit.value,
-//                contentDescription = null,
-//                modifier = Modifier
-//                    .padding(4.dp)
-//                    .fillMaxHeight().width(100.dp)
-//                    .clip(RoundedCornerShape(12.dp)),
-//                contentScale = ContentScale.Crop,
-//            )
             picker(imageUri = bit)
             Button(onClick = {
-//                val modres = OnnxController.runModel(scbit,
-//                    Pair(3f,3f),Pair(0f,0f),Pair(100f,100f))
-//                outbit.value = overlay(scbit, modres)
-//                Log.i("Mao", "Ran model.")
+                val bit = BitmapFactory.decodeStream(res.openInputStream(bit.value))
+                val modres = OnnxController.runModel(bit,
+                    Pair(3f,3f),Pair(0f,0f),Pair(100f,100f))
+                outbit.value = overlay(bit, modres)
+                Log.i("Mao", "Ran model.")
             }) {
                 Text("Check")
             }
+            TouchableFeedback()
+            AsyncImage(
+                model = bit.value,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop,
+            )
+
 
             outbit.value?.let {
                 Image(

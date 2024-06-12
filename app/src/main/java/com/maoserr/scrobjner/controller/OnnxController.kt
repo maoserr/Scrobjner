@@ -11,7 +11,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
 import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.api.toNDArray
 import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer

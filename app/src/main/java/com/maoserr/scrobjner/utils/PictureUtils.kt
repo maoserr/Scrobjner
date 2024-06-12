@@ -1,6 +1,7 @@
 package com.maoserr.scrobjner.utils
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -35,15 +36,6 @@ fun picker(imageUri: MutableState<Uri?>){
     ) { uri: Uri? ->
         imageUri.value = uri
     }
-//    AsyncImage(
-//        model = imageUri.value,
-//        contentDescription = null,
-//        modifier = Modifier
-//            .padding(4.dp)
-//            .fillMaxHeight().width(100.dp)
-//            .clip(RoundedCornerShape(12.dp)),
-//        contentScale = ContentScale.Crop,
-//    )
     Button(onClick = {
         launcher.launch("image/*")
     }) {
@@ -91,6 +83,7 @@ fun TouchableFeedback() {
                     // and make it visible
                     touchedPoint = it
                     visible = true
+                    Log.d("test", it.toString())
                 }
             }
     ) {
