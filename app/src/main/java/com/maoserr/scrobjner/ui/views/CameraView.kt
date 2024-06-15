@@ -26,7 +26,6 @@ import com.maoserr.scrobjner.controller.CameraController
 private const val TAG = "Scrobjner-CamView"
 
 
-@Preview
 @Composable
 fun CameraView(
     onClose: (()-> Unit)? = null,
@@ -40,7 +39,6 @@ fun CameraView(
             IconButton(
                 onClick = {
                     Log.i(TAG, "Capturing photo...")
-                    CameraController.capturePhoto()
                 },
                 content = {
                     Icon(

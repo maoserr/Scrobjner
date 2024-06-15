@@ -10,6 +10,7 @@ import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -39,14 +41,11 @@ fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview
 @Composable
 fun Greeting(
-    showCam: MutableState<Boolean> = mutableStateOf(false),
-    showPhoto: MutableState<Boolean> = mutableStateOf(false),
-    photoUri: MutableState<Uri> = mutableStateOf(Uri.EMPTY),
+    showCam: MutableState<Boolean> = mutableStateOf(false)
 ) {
-    val bit = remember { mutableStateOf(Uri.EMPTY)}
+    val bit = remember { mutableStateOf(Uri.EMPTY) }
     val outbit: MutableState<Bitmap?> = remember { mutableStateOf(null) }
     val res = LocalContext.current.contentResolver
     Scaffold(
@@ -86,25 +85,48 @@ fun Greeting(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             picker(imageUri = bit)
+            var sliderPosition by remember { mutableFloatStateOf(0f) }
+            Column {
+                Slider(
+                    value = sliderPosition,
+                    onValueChange = { sliderPosition = it },
+                    valueRange = 0f..400f
+                )
+                Text(text = sliderPosition.toString())
+            }
             Button(onClick = {
                 val bit = BitmapFactory.decodeStream(res.openInputStream(bit.value))
-                val modres = OnnxController.runModel(bit,
-                    Pair(3f,3f),Pair(0f,0f),Pair(100f,100f))
+                val modres = OnnxController.runModel(
+                    bit,
+                    Pair(327.1111f,426.66666f),
+                    Pair(241.77777f,341.33334f), Pair(398.22223f,497.77777f)
+                )
                 outbit.value = overlay(bit, modres)
-                Log.i("Mao", "Ran model.")
             }) {
                 Text("Check")
             }
-            TouchableFeedback()
-            AsyncImage(
-                model = bit.value,
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop,
-            )
+            TouchableFeedback(bit = bit) { offset, size ->
+                val bit = BitmapFactory.decodeStream(res.openInputStream(bit.value))
+                val wOffSet = sliderPosition
+                val hOffSet = sliderPosition
+                Log.d("test", offset.toString())
+                Log.d("test", size.toString())
+                val w = offset.x * (bit.width.toFloat() / size.width)
+                val h = offset.y * (bit.height.toFloat() / size.height)
 
+                val minx = if (w > wOffSet) w - wOffSet else 0f
+                val maxx = if (w < (bit.width - wOffSet)) w + wOffSet else bit.width.toFloat()
+                val miny = if (h > hOffSet) h - hOffSet else 0f
+                val maxy = if (h < (bit.height - hOffSet)) h + hOffSet else bit.height.toFloat()
+                Log.i("Mao", "($w, $h), ($minx, $miny), ($maxx, $maxy)")
+                val modres = OnnxController.runModel(
+                    bit,
+                    Pair(w, h),
+                    Pair(minx, miny), Pair(maxx, maxy)
+                )
+                outbit.value = overlay(bit, modres)
+                Log.i("Mao", "Ran model.")
+            }
 
             outbit.value?.let {
                 Image(

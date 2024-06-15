@@ -45,7 +45,7 @@ object OnnxController {
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap{
+    fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap {
         val scaleX = targetW.toFloat() / img.width
         val scaleY = targetH.toFloat() / img.height
         val scale = min(scaleX, scaleY)
@@ -56,18 +56,19 @@ object OnnxController {
         return resized
     }
 
-    private fun decode(embeds:OnnxTensor,
-                       ptCoords1:FloatArray,
-                       ptLbls1:FloatArray,
-                       ):Pair<Float, Array<Array<ByteArray>>>  {
-        val mask = mk.zeros<Float>(1,1,256,256).toFloatArray()
+    private fun decode(
+        embeds: OnnxTensor,
+        ptCoords1: FloatArray,
+        ptLbls1: FloatArray,
+    ): Pair<Float, Array<Array<ByteArray>>> {
+        val mask = mk.zeros<Float>(1, 1, 256, 256).toFloatArray()
         val hasMask = mk.zeros<Float>(1).toFloatArray()
-        val origIm = mk[684f,1024f].toFloatArray()
+        val origIm = mk[684f, 1024f].toFloatArray()
 
 
-        val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1,4,2))
-        val ptLbls = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptLbls1), longArrayOf(1,4))
-        val maskInput = OnnxTensor.createTensor(ortEnv,FloatBuffer.wrap(mask), longArrayOf(1,1,256,256))
+        val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1, 4, 2))
+        val ptLbls = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptLbls1), longArrayOf(1, 4))
+        val maskInput = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(mask), longArrayOf(1, 1, 256, 256))
         val hasMaskInp = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(hasMask), longArrayOf(1))
         val origImSize = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(origIm), longArrayOf(2))
         ptCoords.use {
@@ -88,6 +89,7 @@ object OnnxController {
                             out.use {
                                 @Suppress("UNCHECKED_CAST")
                                 val iou = (out[0].value as Array<FloatArray>)[0][0]
+
                                 @Suppress("UNCHECKED_CAST")
                                 val outMask = out[2].value as Array<Array<ByteArray>>
                                 return iou to outMask
@@ -99,29 +101,32 @@ object OnnxController {
         }
     }
 
-    fun runModel(img: Bitmap,
-                 pt:Pair<Float,Float>,
-                 tl:Pair<Float,Float>,
-                 br:Pair<Float,Float>
-                 ): Bitmap {
+    fun runModel(
+        img: Bitmap,
+        pt: Pair<Float, Float>,
+        tl: Pair<Float, Float>,
+        br: Pair<Float, Float>
+    ): Bitmap {
         val timeSource = TimeSource.Monotonic
         val markStart = timeSource.markNow()
 
         val imgBuf = ByteBuffer.allocate(
-            img.width*img.height* DIM_PIXEL_SIZE)
+            img.width * img.height * DIM_PIXEL_SIZE
+        )
         img.copyPixelsToBuffer(imgBuf)
         imgBuf.rewind()
         val outbuf = ByteBuffer.allocate(
-            1024*684* DIM_PIXEL_SIZE
+            1024 * 684 * DIM_PIXEL_SIZE
         )
         val bmp = Bitmap.createBitmap(1024, 684, Bitmap.Config.ARGB_8888)
-        val ptCoords1= floatArrayOf(
+        val ptCoords1 = floatArrayOf(
             pt.first, pt.second,
             tl.first, tl.second,
             br.first, br.second,
             0.0f, 0.0f
         )
-        val ptLbls1 = floatArrayOf(0.0f,2.0f,3.0f,-1.0f)
+        Log.i("test", ptCoords1.contentToString())
+        val ptLbls1 = floatArrayOf(0.0f, 2.0f, 3.0f, -1.0f)
 
         ortEnv.use {
             val imgDat = OnnxTensor.createTensor(
@@ -130,7 +135,7 @@ object OnnxController {
                     img.height.toLong(),
                     img.width.toLong(),
                     DIM_PIXEL_SIZE.toLong()
-                ),OnnxJavaType.UINT8
+                ), OnnxJavaType.UINT8
             )
             imgDat.use {
                 val markPre = timeSource.markNow()
@@ -143,22 +148,23 @@ object OnnxController {
                     val markDec = timeSource.markNow()
                     val mask2 = mask.flatten().toTypedArray()
                     outbuf.rewind()
-                    for (e in mask2){
+                    for (e in mask2) {
                         outbuf.put(e)
                     }
                     outbuf.rewind()
                     bmp.copyPixelsFromBuffer(outbuf)
                     val markEnd = timeSource.markNow()
-                    Log.d("Mao","Pre: ${markPre-markStart}")
-                    Log.d("Mao","Enc: ${markEnc-markPre}")
-                    Log.d("Mao","Dec: ${markDec-markEnc}")
-                    Log.d("Mao","Post: ${markEnd-markDec}")
-                    Log.d("Mao","Total: ${markEnd-markStart}")
+                    Log.d("Mao", "Pre: ${markPre - markStart}")
+                    Log.d("Mao", "Enc: ${markEnc - markPre}")
+                    Log.d("Mao", "Dec: ${markDec - markEnc}")
+                    Log.d("Mao", "Post: ${markEnd - markDec}")
+                    Log.d("Mao", "Total: ${markEnd - markStart}")
                     return bmp
                 }
             }
         }
     }
+
     fun release() {
         ortEnv.close()
     }

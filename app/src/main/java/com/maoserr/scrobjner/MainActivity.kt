@@ -36,26 +36,14 @@ class MainActivity : ComponentActivity() {
                         onClose = ::handleClose,
                     )
                 } else {
-                    Greeting( shouldShowCamera, showPhoto, photoUri,
-                    )
+                    Greeting( shouldShowCamera)
                 }
             }
         }
         OnnxController.init(this)
-        CameraController.init(this, ::handleImageCapture,
-            SamAnalyzer())
+        CameraController.init(this, SamAnalyzer())
     }
 
-    private fun handleImageCapture(file: File) {
-        shouldShowCamera.value = false
-        val uri = Uri.fromFile(file)
-        val bit = BitmapFactory.decodeFile(file.absolutePath)
-        val outbit = OnnxController.runModel(bit, Pair(0f,0f), Pair(0f,0f), Pair(0f,0f))
-        Log.i("Mao", "Image captured: $uri")
-        this.handleClose()
-        photoUri.value = uri
-        showPhoto.value = true
-    }
 
     private fun handleClose(){
         shouldShowCamera.value = false

@@ -43,8 +43,6 @@ object CameraController {
         private set
 
     // Init props
-    private var captureCb: ((File) -> Unit)? = null
-    private var capturePath: File? = null
     private var analyzerProc: Analyzer? = null
 
     // View props
@@ -57,17 +55,12 @@ object CameraController {
      */
     fun init(
         comp: ComponentActivity,
-        onCapture: ((File) -> Unit)? = null,
         analyzer: Analyzer? = null
     ) {
         requestCameraPermission(
             comp
         ) {
             canShowCamera = true
-            captureCb = onCapture
-            if (onCapture != null) {
-                capturePath = getOutputDirectory(comp)
-            }
             analyzerProc = analyzer
         }
 
@@ -122,10 +115,6 @@ object CameraController {
         previewView = remember { PreviewView(context) }
         val useCases: List<UseCase> = listOfNotNull(
             preview,
-            captureCb?.let {
-                imageCapture = remember { ImageCapture.Builder().build() }
-                imageCapture
-            },
             analyzerProc?.let { anly ->
                 ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -149,27 +138,6 @@ object CameraController {
 
             preview.setSurfaceProvider(previewView!!.surfaceProvider)
         }
-    }
-
-    fun capturePhoto() {
-        val photoFile = File(
-            capturePath,
-            SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
-                .format(System.currentTimeMillis()) + ".jpg"
-        )
-
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
-        imageCapture!!.takePicture(outputOptions, cameraExec,
-            object : ImageCapture.OnImageSavedCallback {
-            override fun onError(exception: ImageCaptureException) {
-                Log.e(TAG, "Take photo error:", exception)
-            }
-
-            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                captureCb?.let { it(photoFile) }
-            }
-        })
     }
 
     /**
