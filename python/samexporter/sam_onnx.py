@@ -175,6 +175,7 @@ class SegmentAnythingONNX:
         """
         Calculate embedding and metadata for a single image.
         """
+        from timeit import default_timer as timer
         original_size = cv_image.shape[:2]
 
         # Calculate a transformation matrix to convert to self.input_size
@@ -204,7 +205,10 @@ class SegmentAnythingONNX:
             encoder_inputs = {
                 self.encoder_input_name: rgba_img
             }
+        start = timer()
         image_embedding = self.run_encoder(encoder_inputs)
+        end = timer()
+        print(end - start)
         return {
             "image_embedding": image_embedding,
             "original_size": original_size,

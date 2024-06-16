@@ -1,5 +1,8 @@
 package com.maoserr.scrobjner.utils
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,23 +19,58 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
-@Composable
-fun picker(imageUri: MutableState<Uri?>){
+fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap {
+    val scaleX = targetW.toFloat() / img.width
+    val scaleY = targetH.toFloat() / img.height
+    val scale = kotlin.math.min(scaleX, scaleY)
+    val mat = Matrix()
+    mat.postScale(scale, scale)
+    val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
+    img.recycle()
+    return resized
+}
 
+fun resizeSrc(bit: Bitmap, maxSize: Int = 1024): Bitmap {
+    if (bit.width > maxSize && bit.width > bit.height){
+        val scale = maxSize.toDouble() / bit.width
+        val w = bit.width * scale
+        val h = bit.height * scale
+        val res = Bitmap.createScaledBitmap(bit, w.toInt(), h.toInt(), true)
+        return res
+    } else if (bit.height > maxSize && bit.height >= bit.width){
+        val scale = maxSize.toDouble() / bit.height
+        val w = bit.width * scale
+        val h = bit.height * scale
+        val res = Bitmap.createScaledBitmap(bit, w.toInt(), h.toInt(), true)
+        return res
+    }
+    return bit
+}
+
+@Composable
+fun picker(image: MutableState<Bitmap?>) {
+    val res = LocalContext.current.contentResolver
     val launcher = rememberLauncherForActivityResult(
         contract =
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        imageUri.value = uri
+        if (uri != null) {
+            val bit = BitmapFactory.decodeStream(res.openInputStream(uri))
+            val sizedBit = resizeSrc(bit)
+            image.value = sizedBit
+        }
+
     }
     Button(onClick = {
         launcher.launch("image/*")
@@ -42,13 +80,17 @@ fun picker(imageUri: MutableState<Uri?>){
 }
 
 @Composable
-fun TouchableFeedback(bit: MutableState<Uri>, cb: (offset: Offset, size: IntSize) -> Unit) {
+fun TouchableFeedback(
+    bit: MutableState<Bitmap?>,
+    outbit: MutableState<Bitmap?>,
+    cb: (offset: Offset, size: IntSize) -> Unit
+) {
     // Some constants here
     val sizeAnimationDuration = 200
     val colorAnimationDuration = 200
     val boxSize = 100.dp
-    val startColor = Color.Red.copy(alpha = .05f)
-    val endColor = Color.Red.copy(alpha = .8f)
+    val startColor = Color.Green.copy(alpha = .05f)
+    val endColor = Color.Green.copy(alpha = .8f)
     // These states are changed to update the animation
     var touchedPoint by remember { mutableStateOf(Offset.Zero) }
     var visible by remember { mutableStateOf(false) }
@@ -62,14 +104,14 @@ fun TouchableFeedback(bit: MutableState<Uri>, cb: (offset: Offset, size: IntSize
         ),
         finishedListener = {
             visible = false
-        }
+        }, label = "colorAnim"
     )
     val sizeAnimation by animateDpAsState(
         if (visible) boxSize else 0.dp,
         tween(
             durationMillis = sizeAnimationDuration,
             easing = LinearEasing
-        )
+        ), label = "sizeAnim"
     )
     // Box for the whole screen
     Box {
@@ -89,6 +131,15 @@ fun TouchableFeedback(bit: MutableState<Uri>, cb: (offset: Offset, size: IntSize
                         visible = true
                         cb(it, size)
                     }
+                }
+                .drawWithContent {
+                    drawContent()
+                    if (outbit.value != null) {
+                        drawImage(outbit.value!!.asImageBitmap())
+                    }
+                }
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                 },
             contentScale = ContentScale.Fit,
         )
@@ -103,8 +154,8 @@ fun TouchableFeedback(bit: MutableState<Uri>, cb: (offset: Offset, size: IntSize
                 Modifier
                     .align(Alignment.Center)
                     .background(colorAnimation, CircleShape)
-                    .height(if (visible) sizeAnimation else 0.dp)
-                    .width(if (visible) sizeAnimation else 0.dp),
+                    .height(if (visible) sizeAnimation else 5.dp)
+                    .width(if (visible) sizeAnimation else 5.dp),
             )
         }
     }

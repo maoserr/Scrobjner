@@ -158,7 +158,7 @@ class MaskToRGBA(Step):
         )
         concat = make_node(
             "Concat",
-            inputs=["red", "green", "blue", "mask_sq"],
+            inputs=["mask_sq", "green", "blue", "mask_sq"],
             outputs=["rgba_data"],
             axis=-1
         )

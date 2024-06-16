@@ -45,17 +45,6 @@ object OnnxController {
         inputDecName = ortSesDec.inputNames.iterator().next()
     }
 
-    fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap {
-        val scaleX = targetW.toFloat() / img.width
-        val scaleY = targetH.toFloat() / img.height
-        val scale = min(scaleX, scaleY)
-        val mat = Matrix()
-        mat.postScale(scale, scale)
-        val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
-        img.recycle()
-        return resized
-    }
-
     private fun decode(
         embeds: OnnxTensor,
         ptCoords1: FloatArray,
