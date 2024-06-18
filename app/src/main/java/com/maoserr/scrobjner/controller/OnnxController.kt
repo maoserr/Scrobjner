@@ -6,7 +6,6 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.extensions.OrtxPackage
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.util.Log
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
@@ -15,10 +14,11 @@ import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
-import kotlin.math.min
 import kotlin.time.TimeSource
 
 private const val DIM_PIXEL_SIZE = 4;
+
+
 
 object OnnxController {
     private var ortEnv: OrtEnvironment = OrtEnvironment.getEnvironment()
@@ -115,7 +115,7 @@ object OnnxController {
             0.0f, 0.0f
         )
         Log.i("test", ptCoords1.contentToString())
-        val ptLbls1 = floatArrayOf(0.0f, 2.0f, 3.0f, -1.0f)
+        val ptLbls1 = floatArrayOf(1.0f, 2.0f, 3.0f, -1.0f)
 
         ortEnv.use {
             val imgDat = OnnxTensor.createTensor(

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -11,6 +12,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -129,7 +131,18 @@ fun TouchableFeedback(
                     detectTapGestures {
                         touchedPoint = it
                         visible = true
-                        cb(it, size)
+//                        cb(it, size)
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectDragGestures(onDragStart = {
+                            offset ->
+                        Log.d("Drag", "Start: $offset")
+                    }, onDragEnd = {
+                        Log.d("Drag", "End")
+                    }){
+                            _, offset ->
+                        Log.d("Drag", "Draggin: $offset")
                     }
                 }
                 .drawWithContent {
