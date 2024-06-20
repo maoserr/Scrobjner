@@ -97,22 +97,21 @@ fun Greeting(
             }) {
                 Text("Check")
             }
-            TouchableFeedback(bit = bit, outbit = outbit) { offset, size ->
+            TouchableFeedback(bit = bit, outbit = outbit)
+            { offset, size, minC, maxC ->
                 if (bit.value != null) {
 
 
                     val bitm = bit.value!!
-                    val wOffSet = sliderPosition
-                    val hOffSet = sliderPosition
                     Log.d("test", offset.toString())
                     Log.d("test", size.toString())
                     val w = offset.x * (bitm.width.toFloat() / size.width)
                     val h = offset.y * (bitm.height.toFloat() / size.height)
 
-                    val minx = if (w > wOffSet) w - wOffSet else 0f
-                    val maxx = if (w < (bitm.width - wOffSet)) w + wOffSet else bitm.width.toFloat()
-                    val miny = if (h > hOffSet) h - hOffSet else 0f
-                    val maxy = if (h < (bitm.height - hOffSet)) h + hOffSet else bitm.height.toFloat()
+                    val minx = minC.x
+                    val maxx = maxC.x
+                    val miny = minC.y
+                    val maxy = maxC.y
                     Log.i("Mao", "($w, $h), ($minx, $miny), ($maxx, $maxy)")
                     val modres = OnnxController.runModel(
                         bitm,

@@ -23,7 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -85,7 +88,7 @@ fun picker(image: MutableState<Bitmap?>) {
 fun TouchableFeedback(
     bit: MutableState<Bitmap?>,
     outbit: MutableState<Bitmap?>,
-    cb: (offset: Offset, size: IntSize) -> Unit
+    cb: (offset: Offset, size: IntSize, minCoord: Offset, maxCoord: Offset) -> Unit
 ) {
     // Some constants here
     val sizeAnimationDuration = 200
@@ -95,6 +98,8 @@ fun TouchableFeedback(
     val endColor = Color.Green.copy(alpha = .8f)
     // These states are changed to update the animation
     var touchedPoint by remember { mutableStateOf(Offset.Zero) }
+    var dragStart by remember { mutableStateOf(Offset.Zero) }
+    var dragEnd by remember { mutableStateOf(Offset.Zero) }
     var visible by remember { mutableStateOf(false) }
 
     // circle color and size in according to the visible state
@@ -131,18 +136,19 @@ fun TouchableFeedback(
                     detectTapGestures {
                         touchedPoint = it
                         visible = true
-//                        cb(it, size)
+                        cb(it, size, dragStart, dragStart + dragEnd)
                     }
                 }
                 .pointerInput(Unit) {
                     detectDragGestures(onDragStart = {
                             offset ->
                         Log.d("Drag", "Start: $offset")
-                    }, onDragEnd = {
-                        Log.d("Drag", "End")
+                        dragStart = offset
+                        dragEnd = Offset.Zero
                     }){
                             _, offset ->
                         Log.d("Drag", "Draggin: $offset")
+                        dragEnd += offset
                     }
                 }
                 .drawWithContent {
@@ -150,6 +156,7 @@ fun TouchableFeedback(
                     if (outbit.value != null) {
                         drawImage(outbit.value!!.asImageBitmap())
                     }
+                    drawRect(Color.Black, dragStart, Size(dragEnd.x, dragEnd.y), style= Stroke(width = 2F))
                 }
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
