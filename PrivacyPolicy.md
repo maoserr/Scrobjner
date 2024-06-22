@@ -17,15 +17,21 @@ All data/settings are only stored locally on your mobile device, within the Appl
 The Application does not collect any information automatically.
 
 The Application does not share any information automatically with third parties.
+
  - Does the Application collect precise real time location information of the device? 
+
 The Application does not collect precise information about the location of your mobile device.
+
  - Do third parties see and/or have access to information obtained by the Application?
+
 Not applicable since the Application does not collect any information automatically.
+
  - What are my opt-out rights?
+
 You can easily delete all User Provided Data by uninstalling the Application from your mobile device. You may use the standard uninstall processes as may be available as part of your mobile device or via the mobile application marketplace or network.
 
 ## Data Retention Policy, Managing Your Information
-This Application does not automatically collect, share nor retain any information. All Countdown details are only stored locally on your mobile device, within the Application private folder, following Android’s security best practices.
+This Application does not automatically collect, share nor retain any information. All scan details are only stored locally on your mobile device, within the Application private folder, following Android’s security best practices.
 
 If you would like to update specific User Provided Data, you may do it directly within the Application, by editing or removing the pictures in question.
 
