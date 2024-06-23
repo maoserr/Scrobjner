@@ -73,15 +73,6 @@ object CameraController {
         cameraExec.shutdown()
     }
 
-    private fun getOutputDirectory(comp: ComponentActivity): File {
-        val mediaDir = comp.externalMediaDirs.firstOrNull()?.let {
-            File(it, comp.resources.getString(R.string.app_name)).apply { mkdirs() }
-        }
-        Log.i(TAG, mediaDir.toString())
-        Log.i(TAG, comp.filesDir.toString())
-        return if (mediaDir != null && mediaDir.exists()) mediaDir else comp.filesDir
-    }
-
     /**
      * Include this as the preview box
      */

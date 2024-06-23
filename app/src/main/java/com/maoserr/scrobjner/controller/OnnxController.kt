@@ -9,11 +9,15 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.activity.ComponentActivity
 import com.maoserr.scrobjner.R
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
+import java.util.concurrent.Executors
 import kotlin.time.TimeSource
 
 private const val DIM_PIXEL_SIZE = 4;
@@ -28,21 +32,24 @@ object OnnxController {
     private lateinit var ortSesDec: OrtSession
     private lateinit var inputDecName: String
 
-    fun init(comp: ComponentActivity) {
-        val sessionOptions: OrtSession.SessionOptions = OrtSession.SessionOptions()
-        sessionOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath())
+    suspend fun init(comp: ComponentActivity) {
+        val dispatcher: CoroutineDispatcher = Dispatchers.Default
+        withContext(dispatcher) {
+            val sessionOptions: OrtSession.SessionOptions = OrtSession.SessionOptions()
+            sessionOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath())
 
-        ortSesEnc = ortEnv.createSession(
-            comp.resources.openRawResource(R.raw.samenc_enh)
-                .readBytes(), sessionOptions
-        )
-        inputEncName = ortSesEnc.inputNames.iterator().next()
+            ortSesEnc = ortEnv.createSession(
+                comp.resources.openRawResource(R.raw.samenc_enh)
+                    .readBytes(), sessionOptions
+            )
+            inputEncName = ortSesEnc.inputNames.iterator().next()
 
-        ortSesDec = ortEnv.createSession(
-            comp.resources.openRawResource(R.raw.samdec_enh)
-                .readBytes(), sessionOptions
-        )
-        inputDecName = ortSesDec.inputNames.iterator().next()
+            ortSesDec = ortEnv.createSession(
+                comp.resources.openRawResource(R.raw.samdec_enh)
+                    .readBytes(), sessionOptions
+            )
+            inputDecName = ortSesDec.inputNames.iterator().next()
+        }
     }
 
     private fun decode(
@@ -90,67 +97,72 @@ object OnnxController {
         }
     }
 
-    fun runModel(
+    suspend fun runModel(
         img: Bitmap,
         pt: Pair<Float, Float>,
         tl: Pair<Float, Float>,
         br: Pair<Float, Float>
     ): Bitmap {
-        val timeSource = TimeSource.Monotonic
-        val markStart = timeSource.markNow()
+        val dispatcher: CoroutineDispatcher = Dispatchers.Default
+        return withContext(dispatcher) {
+            var bit: Bitmap
+            val timeSource = TimeSource.Monotonic
+            val markStart = timeSource.markNow()
 
-        val imgBuf = ByteBuffer.allocate(
-            img.width * img.height * DIM_PIXEL_SIZE
-        )
-        img.copyPixelsToBuffer(imgBuf)
-        imgBuf.rewind()
-        val outbuf = ByteBuffer.allocate(
-            1024 * 684 * DIM_PIXEL_SIZE
-        )
-        val bmp = Bitmap.createBitmap(1024, 684, Bitmap.Config.ARGB_8888)
-        val ptCoords1 = floatArrayOf(
-            pt.first, pt.second,
-            tl.first, tl.second,
-            br.first, br.second,
-            0.0f, 0.0f
-        )
-        Log.i("test", ptCoords1.contentToString())
-        val ptLbls1 = floatArrayOf(1.0f, 2.0f, 3.0f, -1.0f)
-
-        ortEnv.use {
-            val imgDat = OnnxTensor.createTensor(
-                ortEnv, imgBuf,
-                longArrayOf(
-                    img.height.toLong(),
-                    img.width.toLong(),
-                    DIM_PIXEL_SIZE.toLong()
-                ), OnnxJavaType.UINT8
+            val imgBuf = ByteBuffer.allocate(
+                img.width * img.height * DIM_PIXEL_SIZE
             )
-            imgDat.use {
-                val markPre = timeSource.markNow()
-                val encInput = mapOf(inputEncName to imgDat)
-                val out = ortSesEnc.run(encInput)
-                out.use {
-                    val markEnc = timeSource.markNow()
-                    val rawOutput = out?.get(0)
-                    val (iou, mask) = decode(rawOutput as OnnxTensor, ptCoords1, ptLbls1)
-                    val markDec = timeSource.markNow()
-                    val mask2 = mask.flatten().toTypedArray()
-                    outbuf.rewind()
-                    for (e in mask2) {
-                        outbuf.put(e)
+            img.copyPixelsToBuffer(imgBuf)
+            imgBuf.rewind()
+            val outbuf = ByteBuffer.allocate(
+                1024 * 684 * DIM_PIXEL_SIZE
+            )
+            val bmp = Bitmap.createBitmap(1024, 684, Bitmap.Config.ARGB_8888)
+            val ptCoords1 = floatArrayOf(
+                pt.first, pt.second,
+                tl.first, tl.second,
+                br.first, br.second,
+                0.0f, 0.0f
+            )
+            Log.i("test", ptCoords1.contentToString())
+            val ptLbls1 = floatArrayOf(1.0f, 2.0f, 3.0f, -1.0f)
+
+            ortEnv.use {
+                val imgDat = OnnxTensor.createTensor(
+                    ortEnv, imgBuf,
+                    longArrayOf(
+                        img.height.toLong(),
+                        img.width.toLong(),
+                        DIM_PIXEL_SIZE.toLong()
+                    ), OnnxJavaType.UINT8
+                )
+                imgDat.use {
+                    val markPre = timeSource.markNow()
+                    val encInput = mapOf(inputEncName to imgDat)
+                    val out = ortSesEnc.run(encInput)
+                    out.use {
+                        val markEnc = timeSource.markNow()
+                        val rawOutput = out?.get(0)
+                        val (iou, mask) = decode(rawOutput as OnnxTensor, ptCoords1, ptLbls1)
+                        val markDec = timeSource.markNow()
+                        val mask2 = mask.flatten().toTypedArray()
+                        outbuf.rewind()
+                        for (e in mask2) {
+                            outbuf.put(e)
+                        }
+                        outbuf.rewind()
+                        bmp.copyPixelsFromBuffer(outbuf)
+                        val markEnd = timeSource.markNow()
+                        Log.d("Mao", "Pre: ${markPre - markStart}")
+                        Log.d("Mao", "Enc: ${markEnc - markPre}")
+                        Log.d("Mao", "Dec: ${markDec - markEnc}")
+                        Log.d("Mao", "Post: ${markEnd - markDec}")
+                        Log.d("Mao", "Total: ${markEnd - markStart}")
+                        bit = bmp
                     }
-                    outbuf.rewind()
-                    bmp.copyPixelsFromBuffer(outbuf)
-                    val markEnd = timeSource.markNow()
-                    Log.d("Mao", "Pre: ${markPre - markStart}")
-                    Log.d("Mao", "Enc: ${markEnc - markPre}")
-                    Log.d("Mao", "Dec: ${markDec - markEnc}")
-                    Log.d("Mao", "Post: ${markEnd - markDec}")
-                    Log.d("Mao", "Total: ${markEnd - markStart}")
-                    return bmp
                 }
             }
+            return@withContext bit
         }
     }
 

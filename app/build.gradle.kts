@@ -70,6 +70,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:multik-core:0.2.3")
     implementation("org.jetbrains.kotlinx:multik-kotlin:0.2.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
 
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")
     implementation("com.microsoft.onnxruntime:onnxruntime-extensions-android:0.9.0")

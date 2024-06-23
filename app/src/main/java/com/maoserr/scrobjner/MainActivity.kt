@@ -36,11 +36,10 @@ class MainActivity : ComponentActivity() {
                         onClose = ::handleClose,
                     )
                 } else {
-                    Greeting( shouldShowCamera)
+                    Greeting( this, shouldShowCamera)
                 }
             }
         }
-        OnnxController.init(this)
         CameraController.init(this, SamAnalyzer())
     }
 
@@ -57,10 +56,10 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun TestPreview() {
-    ScrobjnerTheme {
-        Greeting()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun TestPreview() {
+//    ScrobjnerTheme {
+//        Greeting(this)
+//    }
+//}
