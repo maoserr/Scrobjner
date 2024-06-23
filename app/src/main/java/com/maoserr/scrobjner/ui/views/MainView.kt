@@ -94,6 +94,10 @@ fun MainView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        Text("Select image from gallery, " +
+                "or click the Magnifying glass to pick from camera. " +
+                "Then click on points to run model. " +
+                "You can also drag a box to constrain model.")
         picker(image = mod.bit)
         Row {
             if (mod.running.value) {

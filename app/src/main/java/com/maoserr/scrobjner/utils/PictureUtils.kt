@@ -2,7 +2,6 @@ package com.maoserr.scrobjner.utils
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,7 +24,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -34,7 +32,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import java.io.FileOutputStream
 
 fun resizeSrc(bit: Bitmap, maxSize: Int = 1024): Bitmap {
     if (bit.width > maxSize && bit.width > bit.height){
@@ -70,7 +67,7 @@ fun picker(image: MutableState<Bitmap?>) {
     Button(onClick = {
         launcher.launch("image/*")
     }) {
-        Text(text = "select image")
+        Text(text = "Select image")
     }
 }
 
