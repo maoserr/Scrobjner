@@ -179,7 +179,7 @@ fun TouchableFeedback(
             contentScale = ContentScale.Fit,
         )
         // This box serves as container. It has a fixed size.
-        if ((touchedPoint.x != 0f) && (touchedPoint.y != 0f)) {
+        if ((touchedPoint.x < 1f) && (touchedPoint.y != 1f)) {
             Box(
                 Modifier
                     .offset(xDp, yDp)

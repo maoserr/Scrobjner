@@ -2,15 +2,17 @@ package com.maoserr.scrobjner.ui.views
 
 import android.graphics.*
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
@@ -24,7 +26,6 @@ import com.maoserr.scrobjner.utils.picker
 import com.maoserr.scrobjner.utils.pickerW
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.FileOutputStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -40,13 +41,16 @@ fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
     return bmOverlay
 }
 
-class MainViewModel():ViewModel() {
-    val bit: MutableState<Bitmap?> = mutableStateOf(null)
+class MainViewModel(
+    val bit: MutableState<Bitmap?>
+) : ViewModel() {
+    val running: MutableState<Boolean> = mutableStateOf(false)
+    val runtxt: MutableState<String> = mutableStateOf("")
     val outbit: MutableState<Bitmap?> = mutableStateOf(null)
     val overlayed: MutableState<Bitmap?> = mutableStateOf(null)
-    fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset){
-        if (bit.value != null) {
-
+    fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset) {
+        if ((!running.value) && (bit.value != null)) {
+            running.value = true
 
             val bitm = bit.value!!
             Log.d("test", offset.toString())
@@ -54,72 +58,65 @@ class MainViewModel():ViewModel() {
             val w = offset.x * (bitm.width.toFloat() / size.width)
             val h = offset.y * (bitm.height.toFloat() / size.height)
 
-
-            val minx = if (pt1 == pt2) 0f else min(pt1.x, pt2.x)
-            val maxx = if (pt1 == pt2) bitm.width.toFloat() else max(pt1.x, pt2.x)
-            val miny = if (pt1 == pt2) 0f else min(pt1.y, pt2.y)
-            val maxy = if (pt1 == pt2) bitm.height.toFloat() else max(pt1.y, pt2.y)
+            val nobox = (pt1 == Offset.Zero) && (pt2 == Offset.Zero)
+            val minx = if (nobox) 0f else min(pt1.x, pt2.x)
+            val maxx = if (nobox) bitm.width.toFloat() else max(pt1.x, pt2.x)
+            val miny = if (nobox) 0f else min(pt1.y, pt2.y)
+            val maxy = if (nobox) bitm.height.toFloat() else max(pt1.y, pt2.y)
             Log.i("Mao", "($w, $h), ($minx, $miny), ($maxx, $maxy)")
             viewModelScope.launch(Dispatchers.Default) {
-                val modres = OnnxController.runModel(
+                val (modres, runtime) = OnnxController.runModel(
                     bitm,
                     Pair(w, h),
                     Pair(minx, miny), Pair(maxx, maxy)
                 )
-                outbit.value = modres
-                overlayed.value = overlay(bitm, modres)
+                viewModelScope.launch(Dispatchers.Main) {
+                    outbit.value = modres
+                    overlayed.value = overlay(bitm, modres)
+                    runtxt.value = "Took $runtime seconds."
+                    running.value = false
+                }
                 Log.i("Mao", "Ran model.")
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Greeting(
-    comp: ComponentActivity,
-    showCam: MutableState<Boolean> = mutableStateOf(false)
+fun MainView(
+    bitmap: MutableState<Bitmap?>,
+    innerPadding: PaddingValues
 ) {
-    val mod = remember {MainViewModel()}
-    LaunchedEffect(Unit) {
-        OnnxController.init(comp)
-    }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Text("Scrobjner")
-                }
-            )
-        },
-//        floatingActionButton = {
-//            FloatingActionButton(onClick = { showCam.value = true }) {
-//                Icon(Icons.Default.Search, contentDescription = "Add")
-//            }
-//        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            picker(image = mod.bit)
-            TouchableFeedback(bit = mod.bit, outbit = mod.outbit)
-            { offset, size, minC, maxC ->
-                mod.runModel(offset, size, minC, maxC)
-            }
-
-            mod.overlayed.value?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = "out"
+    val mod = remember { MainViewModel(bitmap) }
+    Column(
+        modifier = Modifier
+            .padding(innerPadding)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        picker(image = mod.bit)
+        Row {
+            if (mod.running.value) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(32.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
-                pickerW(bit = it)
+            } else {
+                Text(text = mod.runtxt.value)
             }
+        }
+        TouchableFeedback(bit = mod.bit, outbit = mod.outbit)
+        { offset, size, minC, maxC ->
+            mod.runModel(offset, size, minC, maxC)
+        }
+
+        mod.overlayed.value?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = "out"
+            )
+            pickerW(bit = it)
         }
     }
 

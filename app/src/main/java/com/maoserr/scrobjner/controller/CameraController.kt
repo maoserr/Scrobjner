@@ -2,12 +2,14 @@ package com.maoserr.scrobjner.controller
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.icu.text.SimpleDateFormat
 import android.util.Log
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
-import androidx.camera.core.ImageAnalysis.Analyzer
+import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,10 +19,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.maoserr.scrobjner.R
 import com.maoserr.scrobjner.controller.CameraController.init
 import com.maoserr.scrobjner.controller.CameraController.previewView
-import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
@@ -42,12 +42,8 @@ object CameraController {
     var canShowCamera by mutableStateOf(false)
         private set
 
-    // Init props
-    private var analyzerProc: Analyzer? = null
-
     // View props
     private var previewView: PreviewView? = null
-    private var imageCapture: ImageCapture? = null
 
     /**
      * Requests camera permission using [comp] and saves any
@@ -55,13 +51,11 @@ object CameraController {
      */
     fun init(
         comp: ComponentActivity,
-        analyzer: Analyzer? = null
     ) {
         requestCameraPermission(
             comp
         ) {
             canShowCamera = true
-            analyzerProc = analyzer
         }
 
     }
@@ -96,7 +90,8 @@ object CameraController {
     fun BuildCamView(
         lensFacing: Int,
         context: Context,
-        lifecycleOwner: LifecycleOwner
+        lifecycleOwner: LifecycleOwner,
+        analyzerProc: ImageAnalysis.Analyzer
     ) {
         if (!canShowCamera) {
             Log.e(TAG, "Camera not initialized")
@@ -106,9 +101,17 @@ object CameraController {
         previewView = remember { PreviewView(context) }
         val useCases: List<UseCase> = listOfNotNull(
             preview,
-            analyzerProc?.let { anly ->
+            analyzerProc.let { anly ->
                 ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setOutputImageFormat(OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                    .setOutputImageRotationEnabled(true)
+                    .setResolutionSelector(
+                        ResolutionSelector.Builder().setResolutionStrategy(
+                            ResolutionStrategy(Size(1024, 768),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)
+                        ).build()
+                    )
                     .build()
                     .also {
                         it.setAnalyzer(cameraExec, anly)

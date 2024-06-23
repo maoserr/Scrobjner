@@ -1,27 +1,27 @@
 package com.maoserr.scrobjner.controller
 
+import android.graphics.Bitmap
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import java.nio.ByteBuffer
+import androidx.compose.runtime.MutableState
 
-typealias LumaListener = (luma: Double) -> Unit
+internal class FrameProc(
+    private val run: MutableState<Boolean>,
+    private val outimg: MutableState<Bitmap?>,
+    private val onCap: (() -> Unit)?
+): ImageAnalysis.Analyzer {
 
-internal class SamAnalyzer(): ImageAnalysis.Analyzer {
-
-    private fun ByteBuffer.toByteArray(): ByteArray {
-        rewind()    // Rewind the buffer to zero
-        val data = ByteArray(remaining())
-        get(data)   // Copy the buffer into a byte array
-        return data // Return the byte array
-    }
-
+    @OptIn(ExperimentalGetImage::class)
     override fun analyze(image: ImageProxy) {
-
-        val buffer = image.planes[0].buffer
-        val data = buffer.toByteArray()
-        val pixels = data.map { it.toInt() and 0xFF }
-        val luma = pixels.average()
-
+        if (run.value) {
+            run.value = false
+            image.image?.let {
+                outimg.value = image.toBitmap()
+                onCap?.invoke()
+            }
+        }
         image.close()
     }
 }

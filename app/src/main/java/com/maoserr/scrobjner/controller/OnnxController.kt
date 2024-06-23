@@ -17,7 +17,6 @@ import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
-import java.util.concurrent.Executors
 import kotlin.time.TimeSource
 
 private const val DIM_PIXEL_SIZE = 4;
@@ -102,10 +101,11 @@ object OnnxController {
         pt: Pair<Float, Float>,
         tl: Pair<Float, Float>,
         br: Pair<Float, Float>
-    ): Bitmap {
+    ): Pair<Bitmap, Float> {
         val dispatcher: CoroutineDispatcher = Dispatchers.Default
         return withContext(dispatcher) {
             var bit: Bitmap
+            var runtime: Float = 0f
             val timeSource = TimeSource.Monotonic
             val markStart = timeSource.markNow()
 
@@ -158,11 +158,12 @@ object OnnxController {
                         Log.d("Mao", "Dec: ${markDec - markEnc}")
                         Log.d("Mao", "Post: ${markEnd - markDec}")
                         Log.d("Mao", "Total: ${markEnd - markStart}")
+                        runtime = (markEnd - markStart).inWholeMilliseconds.toFloat()/1000
                         bit = bmp
                     }
                 }
             }
-            return@withContext bit
+            return@withContext Pair(bit, runtime)
         }
     }
 
