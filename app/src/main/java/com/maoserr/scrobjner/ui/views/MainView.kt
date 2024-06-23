@@ -1,48 +1,50 @@
 package com.maoserr.scrobjner.ui.views
 
-import android.content.res.loader.ResourcesLoader
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Matrix
+import android.graphics.*
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.maoserr.scrobjner.R
 import com.maoserr.scrobjner.controller.OnnxController
 import com.maoserr.scrobjner.utils.TouchableFeedback
 import com.maoserr.scrobjner.utils.picker
+import com.maoserr.scrobjner.utils.pickerW
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.FileOutputStream
+import kotlin.math.max
+import kotlin.math.min
 
 
 fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
     val bmOverlay = Bitmap.createBitmap(bmp1.width, bmp1.height, bmp1.config)
-    val canvas: Canvas = Canvas(bmOverlay)
-    canvas.drawBitmap(bmp1, Matrix(), null)
-    canvas.drawBitmap(bmp2, Matrix(), null)
+    val canvas = Canvas(bmOverlay)
+    val paint = Paint()
+    paint.color = Color.BLACK
+    paint.blendMode = BlendMode.DST_ATOP
+    canvas.drawBitmap(bmp1, Matrix(), paint)
+    canvas.drawBitmap(bmp2, Matrix(), paint)
     return bmOverlay
 }
 
 class MainViewModel():ViewModel() {
     val bit: MutableState<Bitmap?> = mutableStateOf(null)
     val outbit: MutableState<Bitmap?> = mutableStateOf(null)
-    fun runModel(offset: Offset, size: IntSize, minC: Offset, maxC: Offset){
+    val overlayed: MutableState<Bitmap?> = mutableStateOf(null)
+    fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset){
         if (bit.value != null) {
 
 
@@ -52,10 +54,11 @@ class MainViewModel():ViewModel() {
             val w = offset.x * (bitm.width.toFloat() / size.width)
             val h = offset.y * (bitm.height.toFloat() / size.height)
 
-            val minx = minC.x
-            val maxx = maxC.x
-            val miny = minC.y
-            val maxy = maxC.y
+
+            val minx = if (pt1 == pt2) 0f else min(pt1.x, pt2.x)
+            val maxx = if (pt1 == pt2) bitm.width.toFloat() else max(pt1.x, pt2.x)
+            val miny = if (pt1 == pt2) 0f else min(pt1.y, pt2.y)
+            val maxy = if (pt1 == pt2) bitm.height.toFloat() else max(pt1.y, pt2.y)
             Log.i("Mao", "($w, $h), ($minx, $miny), ($maxx, $maxy)")
             viewModelScope.launch(Dispatchers.Default) {
                 val modres = OnnxController.runModel(
@@ -64,8 +67,9 @@ class MainViewModel():ViewModel() {
                     Pair(minx, miny), Pair(maxx, maxy)
                 )
                 outbit.value = modres
+                overlayed.value = overlay(bitm, modres)
+                Log.i("Mao", "Ran model.")
             }
-            Log.i("Mao", "Ran model.")
         }
     }
 }
@@ -88,28 +92,15 @@ fun Greeting(
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
                 title = {
-                    Text("Small Top App Bar")
+                    Text("Scrobjner")
                 }
             )
         },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Bottom app bar",
-                )
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCam.value = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        }
+//        floatingActionButton = {
+//            FloatingActionButton(onClick = { showCam.value = true }) {
+//                Icon(Icons.Default.Search, contentDescription = "Add")
+//            }
+//        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -122,11 +113,12 @@ fun Greeting(
                 mod.runModel(offset, size, minC, maxC)
             }
 
-            mod.outbit.value?.let {
+            mod.overlayed.value?.let {
                 Image(
                     bitmap = it.asImageBitmap(),
                     contentDescription = "out"
                 )
+                pickerW(bit = it)
             }
         }
     }

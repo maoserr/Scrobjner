@@ -34,17 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-
-fun scaleImg(img: Bitmap, targetW: Int = 1024, targetH: Int = 1024): Bitmap {
-    val scaleX = targetW.toFloat() / img.width
-    val scaleY = targetH.toFloat() / img.height
-    val scale = kotlin.math.min(scaleX, scaleY)
-    val mat = Matrix()
-    mat.postScale(scale, scale)
-    val resized = Bitmap.createBitmap(img, 0, 0, img.width, img.height, mat, false)
-    img.recycle()
-    return resized
-}
+import java.io.FileOutputStream
 
 fun resizeSrc(bit: Bitmap, maxSize: Int = 1024): Bitmap {
     if (bit.width > maxSize && bit.width > bit.height){
@@ -85,6 +75,27 @@ fun picker(image: MutableState<Bitmap?>) {
 }
 
 @Composable
+fun pickerW(bit: Bitmap){
+    val res = LocalContext.current.contentResolver
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/png")) {
+        uri: Uri? ->
+        uri?.let {
+            res.openOutputStream(it)?.let { it1 ->
+                bit.compress(Bitmap.CompressFormat.PNG, 90, it1)
+                it1.flush()
+                it1.close()
+            }
+        }
+    }
+    Button(onClick = {
+        launcher.launch("test.png")
+    }) {
+        Text(text = "Save Object")
+    }
+}
+
+@Composable
 fun TouchableFeedback(
     bit: MutableState<Bitmap?>,
     outbit: MutableState<Bitmap?>,
@@ -120,6 +131,12 @@ fun TouchableFeedback(
             easing = LinearEasing
         ), label = "sizeAnim"
     )
+    Button(onClick = {
+        dragStart = Offset.Zero
+        dragEnd = Offset.Zero
+    }) {
+        Text(text = "Clear box")
+    }
     // Box for the whole screen
     Box {
         // The touch offset is px and we need to convert to Dp
@@ -140,13 +157,11 @@ fun TouchableFeedback(
                     }
                 }
                 .pointerInput(Unit) {
-                    detectDragGestures(onDragStart = {
-                            offset ->
+                    detectDragGestures(onDragStart = { offset ->
                         Log.d("Drag", "Start: $offset")
                         dragStart = offset
                         dragEnd = Offset.Zero
-                    }){
-                            _, offset ->
+                    }) { _, offset ->
                         Log.d("Drag", "Draggin: $offset")
                         dragEnd += offset
                     }
@@ -154,9 +169,9 @@ fun TouchableFeedback(
                 .drawWithContent {
                     drawContent()
                     if (outbit.value != null) {
-                        drawImage(outbit.value!!.asImageBitmap())
+                        drawImage(outbit.value!!.asImageBitmap(), blendMode = BlendMode.Color)
                     }
-                    drawRect(Color.Black, dragStart, Size(dragEnd.x, dragEnd.y), style= Stroke(width = 2F))
+                    drawRect(Color.Black, dragStart, Size(dragEnd.x, dragEnd.y), style = Stroke(width = 2F))
                 }
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
@@ -164,19 +179,21 @@ fun TouchableFeedback(
             contentScale = ContentScale.Fit,
         )
         // This box serves as container. It has a fixed size.
-        Box(
-            Modifier
-                .offset(xDp, yDp)
-                .size(boxSize),
-        ) {
-            // And this box is animating the background and the size
+        if ((touchedPoint.x != 0f) && (touchedPoint.y != 0f)) {
             Box(
                 Modifier
-                    .align(Alignment.Center)
-                    .background(colorAnimation, CircleShape)
-                    .height(if (visible) sizeAnimation else 5.dp)
-                    .width(if (visible) sizeAnimation else 5.dp),
-            )
+                    .offset(xDp, yDp)
+                    .size(boxSize),
+            ) {
+                // And this box is animating the background and the size
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .background(colorAnimation, CircleShape)
+                        .height(if (visible) sizeAnimation else 5.dp)
+                        .width(if (visible) sizeAnimation else 5.dp),
+                )
+            }
         }
     }
 }
