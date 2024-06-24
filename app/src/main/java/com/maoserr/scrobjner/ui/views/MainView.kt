@@ -70,6 +70,8 @@ class MainViewModel(
                     Pair(w, h),
                     Pair(minx, miny), Pair(maxx, maxy)
                 )
+                Log.i("Mao","${bitm.width}, ${bitm.height}, " +
+                        "${modres.width}, ${modres.height}")
                 viewModelScope.launch(Dispatchers.Main) {
                     outbit.value = modres
                     overlayed.value = overlay(bitm, modres)
