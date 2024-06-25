@@ -55,10 +55,12 @@ object OnnxController {
         embeds: OnnxTensor,
         ptCoords1: FloatArray,
         ptLbls1: FloatArray,
+        imgW: Int,
+        imgH: Int
     ): Pair<Float, Array<Array<ByteArray>>> {
         val mask = mk.zeros<Float>(1, 1, 256, 256).toFloatArray()
         val hasMask = mk.zeros<Float>(1).toFloatArray()
-        val origIm = mk[684f, 1024f].toFloatArray()
+        val origIm = mk[imgH.toFloat(), imgW.toFloat()].toFloatArray()
 
 
         val ptCoords = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(ptCoords1), longArrayOf(1, 4, 2))
@@ -115,9 +117,9 @@ object OnnxController {
             img.copyPixelsToBuffer(imgBuf)
             imgBuf.rewind()
             val outbuf = ByteBuffer.allocate(
-                1024 * 684 * DIM_PIXEL_SIZE
+                img.width * img.height * DIM_PIXEL_SIZE
             )
-            val bmp = Bitmap.createBitmap(1024, 684, Bitmap.Config.ARGB_8888)
+            val bmp = Bitmap.createBitmap(img.width, img.height, Bitmap.Config.ARGB_8888)
             val ptCoords1 = floatArrayOf(
                 pt.first, pt.second,
                 tl.first, tl.second,
@@ -143,7 +145,7 @@ object OnnxController {
                     out.use {
                         val markEnc = timeSource.markNow()
                         val rawOutput = out?.get(0)
-                        val (iou, mask) = decode(rawOutput as OnnxTensor, ptCoords1, ptLbls1)
+                        val (iou, mask) = decode(rawOutput as OnnxTensor, ptCoords1, ptLbls1,img.width, img.height)
                         val markDec = timeSource.markNow()
                         val mask2 = mask.flatten().toTypedArray()
                         outbuf.rewind()

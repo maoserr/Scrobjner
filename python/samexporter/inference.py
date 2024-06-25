@@ -43,13 +43,13 @@ argparser.add_argument(
 argparser.add_argument(
     "--image",
     type=str,
-    default=r"truck.jpg",
+    default=r"car.jpg",
     help="Path to the image",
 )
 argparser.add_argument(
     "--prompt",
     type=str,
-    default=r"truck_prompt.json",
+    default=r"car_prompt.json",
     help="Path to the image",
 )
 argparser.add_argument(
