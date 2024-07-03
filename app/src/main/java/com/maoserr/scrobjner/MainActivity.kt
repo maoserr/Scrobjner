@@ -19,6 +19,7 @@ import com.maoserr.scrobjner.ui.views.MainView
 class MainActivity : ComponentActivity() {
     private var shouldShowCamera: MutableState<Boolean> = mutableStateOf(false)
     private var bitmap: MutableState<Bitmap?> = mutableStateOf(null)
+    private var bitChg: MutableState<Boolean> = mutableStateOf(true)
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,10 +52,11 @@ class MainActivity : ComponentActivity() {
                     if (shouldShowCamera.value) {
                         CameraView(
                             bitmap,
+                            bitChg,
                             onClose = ::handleClose,
                         )
                     } else {
-                        MainView(bitmap, innerPadding)
+                        MainView(bitmap, bitChg, innerPadding)
                     }
                 }
             }

@@ -33,10 +33,11 @@ private const val TAG = "Scrobjner-CamView"
 @Composable
 fun CameraView(
     bitmap: MutableState<Bitmap?>,
+    bitChg: MutableState<Boolean>,
     onClose: (() -> Unit)? = null,
 ) {
     val run: MutableState<Boolean> = remember { mutableStateOf(false) }
-    val proc = remember { FrameProc(run, bitmap, onClose) }
+    val proc = remember { FrameProc(run, bitmap, bitChg, onClose) }
     CameraController.BuildCamView(
         CameraSelector.LENS_FACING_BACK,
         LocalContext.current, LocalLifecycleOwner.current,

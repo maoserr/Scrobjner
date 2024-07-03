@@ -11,6 +11,7 @@ import com.maoserr.scrobjner.utils.resizeSrc
 internal class FrameProc(
     private val run: MutableState<Boolean>,
     private val outimg: MutableState<Bitmap?>,
+    private val bitchg: MutableState<Boolean>,
     private val onCap: (() -> Unit)?
 ) : ImageAnalysis.Analyzer {
 
@@ -20,6 +21,7 @@ internal class FrameProc(
             run.value = false
             image.image?.let {
                 outimg.value = resizeSrc(image.toBitmap())
+                bitchg.value = true
                 onCap?.invoke()
             }
         }

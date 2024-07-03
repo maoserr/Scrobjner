@@ -48,7 +48,7 @@ class MainViewModel(
     val runtxt: MutableState<String> = mutableStateOf("")
     val outbit: MutableState<Bitmap?> = mutableStateOf(null)
     val overlayed: MutableState<Bitmap?> = mutableStateOf(null)
-    fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset) {
+    fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset, bitchg: Boolean) {
         if ((!running.value) && (bit.value != null)) {
             running.value = true
 
@@ -65,11 +65,24 @@ class MainViewModel(
             val maxy = if (nobox) bitm.height.toFloat() else max(pt1.y, pt2.y)
             Log.i("Mao", "($w, $h), ($minx, $miny), ($maxx, $maxy)")
             viewModelScope.launch(Dispatchers.Default) {
-                val (modres, runtime) = OnnxController.runModel(
-                    bitm,
-                    Pair(w, h),
-                    Pair(minx, miny), Pair(maxx, maxy)
-                )
+                val modres:Bitmap
+                val runtime:Float
+//                if (bitchg) {
+                    val res = OnnxController.runModel(
+                        bitm,
+                        Pair(w, h),
+                        Pair(minx, miny), Pair(maxx, maxy)
+                    )
+                    modres = res.first
+                    runtime = res.second
+//                } else {
+//                    val res = OnnxController.rerunDecode(
+//                        Pair(w, h),
+//                        Pair(minx, miny), Pair(maxx, maxy)
+//                    )
+//                    modres = res.first
+//                    runtime = res.second
+//                }
                 Log.i("Mao","${bitm.width}, ${bitm.height}, " +
                         "${modres.width}, ${modres.height}")
                 viewModelScope.launch(Dispatchers.Main) {
@@ -87,6 +100,7 @@ class MainViewModel(
 @Composable
 fun MainView(
     bitmap: MutableState<Bitmap?>,
+    bitChg: MutableState<Boolean>,
     innerPadding: PaddingValues
 ) {
     val mod = remember { MainViewModel(bitmap) }
@@ -100,7 +114,7 @@ fun MainView(
                 "or click the Magnifying glass to pick from camera. " +
                 "Then click on points to run model. " +
                 "You can also drag a box to constrain model.")
-        picker(image = mod.bit)
+        picker(mod.bit, bitChg)
         Row {
             if (mod.running.value) {
                 CircularProgressIndicator(
@@ -114,7 +128,8 @@ fun MainView(
         }
         TouchableFeedback(bit = mod.bit, outbit = mod.outbit)
         { offset, size, minC, maxC ->
-            mod.runModel(offset, size, minC, maxC)
+            mod.runModel(offset, size, minC, maxC, bitChg.value)
+            bitChg.value = false
         }
 
         mod.overlayed.value?.let {

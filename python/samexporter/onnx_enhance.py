@@ -197,7 +197,6 @@ def run_enc_pipe():
     pipeline.add_pre_processing(
         [
             RGBAToRGB(),
-            add_ppp.Resize(1024, policy="not_larger"),
             BytesToFloat(),
         ]
     )
@@ -244,8 +243,8 @@ if __name__ == "__main__":
     # ORT 1.14 and later support ONNX opset 18, which added antialiasing to the Resize operator.
     # Results are much better when that can be used. Minimum opset is 16.
     onnx_opset = 17
-    run_enc = False
-    run_dec = True
+    run_enc = True
+    run_dec = False
     if run_enc:
         run_enc_pipe()
 

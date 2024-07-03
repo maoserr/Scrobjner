@@ -10,7 +10,7 @@ import numpy as np
 
 from samexporter.sam_onnx import SegmentAnythingONNX
 
-enhance = True
+enhance = False
 enhance_dec = True
 if enhance:
     enc_mod = r"../app/src/main/res/raw/samenc_enh.onnx"
@@ -74,13 +74,17 @@ if __name__ == "__main__":
     )
 
     image = cv2.imread(args.image)
+    # image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
     prompt = json.load(open(args.prompt))
 
     embedding = model.encode(image, enhance)
-    masks = model.predict_masks(embedding, prompt, enhance_dec)
+    masks, lowm = model.predict_masks(embedding, prompt, enhance_dec)
 
     if enhance_dec:
         visualized = masks
+        # visualized = np.squeeze(np.transpose(lowm, (2,3,1,0)),3)
+        print(masks.shape)
     else:
         # Save the masks as a single image.
         mask = np.zeros((masks.shape[2], masks.shape[3], 3), dtype=np.uint8)
@@ -88,23 +92,24 @@ if __name__ == "__main__":
             mask[m > 0.0] = [255, 0, 0]
 
         # Binding image and mask
-        visualized = cv2.addWeighted(image, 0.5, mask, 0.5, 0)
+        visualized = np.squeeze(np.transpose(masks, (2,3,1,0)),3)
+        # visualized = cv2.addWeighted(image, 0.5, mask, 0.5, 0)
 
         # Draw the prompt points and rectangles.
-        for p in prompt:
-            if p["type"] == "point":
-                color = (
-                    (0, 255, 0) if p["label"] == 1 else (0, 0, 255)
-                )  # green for positive, red for negative
-                cv2.circle(visualized, (p["data"][0], p["data"][1]), 10, color, -1)
-            elif p["type"] == "rectangle":
-                cv2.rectangle(
-                    visualized,
-                    (p["data"][0], p["data"][1]),
-                    (p["data"][2], p["data"][3]),
-                    (0, 255, 0),
-                    2,
-                )
+        # for p in prompt:
+        #     if p["type"] == "point":
+        #         color = (
+        #             (0, 255, 0) if p["label"] == 1 else (0, 0, 255)
+        #         )  # green for positive, red for negative
+        #         cv2.circle(visualized, (p["data"][0], p["data"][1]), 10, color, -1)
+        #     elif p["type"] == "rectangle":
+        #         cv2.rectangle(
+        #             visualized,
+        #             (p["data"][0], p["data"][1]),
+        #             (p["data"][2], p["data"][3]),
+        #             (0, 255, 0),
+        #             2,
+        #         )
 
     if args.output is not None:
         pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)

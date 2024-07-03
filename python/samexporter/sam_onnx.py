@@ -18,7 +18,7 @@ class SegmentAnythingONNX:
 
     def __init__(self, encoder_model_path, decoder_model_path) -> None:
         self.target_size = 1024
-        self.input_size = (684, 1024)
+        self.input_size = (1024, 1024)
 
         # Load models
         providers = onnxruntime.get_available_providers()
@@ -129,28 +129,28 @@ class SegmentAnythingONNX:
             "point_labels": onnx_label,
             "mask_input": onnx_mask_input,
             "has_mask_input": onnx_has_mask_input,
-            "orig_im_size": np.array(self.input_size, dtype=np.float32),
+            "orig_im_size": np.array(original_size, dtype=np.float32),
         }
         if enhance:
-            decoder_inputs["_ppp2_orig_im_size"] = np.array(self.input_size, dtype=np.float32)
+            decoder_inputs["_ppp2_orig_im_size"] = np.array(original_size, dtype=np.float32)
         print(image_embedding.shape)
         print(onnx_coord.shape)
         print(onnx_label.shape)
         print(onnx_mask_input.shape)
         print(onnx_has_mask_input.shape)
         print(np.array(self.input_size, dtype=np.float32).shape)
-        a, _, c = self.decoder_session.run(None, decoder_inputs)
+        a, lowm, c = self.decoder_session.run(None, decoder_inputs)
 
         if enhance:
-            return c
+            return c, lowm
 
-        # Transform the masks back to the original image size.
-        inv_transform_matrix = np.linalg.inv(transform_matrix)
-        transformed_masks = self.transform_masks(
-            a, original_size, inv_transform_matrix
-        )
+        # # Transform the masks back to the original image size.
+        # inv_transform_matrix = np.linalg.inv(transform_matrix)
+        # transformed_masks = self.transform_masks(
+        #     a, (int(original_size[0]), int(original_size[1])), inv_transform_matrix
+        # )
 
-        return transformed_masks
+        return a, c
 
     def transform_masks(self, masks, original_size, transform_matrix):
         """Transform masks
@@ -176,7 +176,7 @@ class SegmentAnythingONNX:
         Calculate embedding and metadata for a single image.
         """
         from timeit import default_timer as timer
-        original_size = cv_image.shape[:2]
+        sz = cv_image.shape[:2]
 
         # Calculate a transformation matrix to convert to self.input_size
         scale_x = self.input_size[1] / cv_image.shape[1]
@@ -189,19 +189,25 @@ class SegmentAnythingONNX:
                 [0, 0, 1],
             ]
         )
-        if not enhanced:
-            cv_image = cv2.warpAffine(
-                cv_image,
-                transform_matrix[:2],
-                (self.input_size[1], self.input_size[0]),
-                flags=cv2.INTER_LINEAR,
-            )
 
+        cv_image2 = cv2.warpAffine(
+            cv_image,
+            transform_matrix[:2],
+            (self.input_size[1], self.input_size[0]),
+            flags=cv2.INTER_LINEAR,
+        )
+        # cv_image2 = cv2.copyMakeBorder(cv_image2,
+        #                                0,
+        #                                int(1024 - cv_image2.shape[0]),
+        #                                0,
+        #                                int(1024 - cv_image2.shape[1]),
+        #                                cv2.BORDER_CONSTANT, value = [0, 0, 0])
+        if not enhanced:
             encoder_inputs = {
-                self.encoder_input_name: cv_image.astype(np.float32),
+                self.encoder_input_name: cv_image2.astype(np.float32),
             }
         else:
-            rgba_img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGBA)
+            rgba_img = cv2.cvtColor(cv_image2, cv2.COLOR_BGR2RGBA)
             encoder_inputs = {
                 self.encoder_input_name: rgba_img
             }
@@ -209,9 +215,10 @@ class SegmentAnythingONNX:
         image_embedding = self.run_encoder(encoder_inputs)
         end = timer()
         print(end - start)
+        print(sz[0] * scale, sz[1] * scale)
         return {
             "image_embedding": image_embedding,
-            "original_size": original_size,
+            "original_size": (sz[0] * scale, sz[1] * scale),
             "transform_matrix": transform_matrix,
         }
 
@@ -219,7 +226,7 @@ class SegmentAnythingONNX:
         """
         Predict masks for a single image.
         """
-        masks = self.run_decoder(
+        masks, lowm = self.run_decoder(
             embedding["image_embedding"],
             embedding["original_size"],
             embedding["transform_matrix"],
@@ -227,4 +234,4 @@ class SegmentAnythingONNX:
             enhance
         )
 
-        return masks
+        return masks, lowm

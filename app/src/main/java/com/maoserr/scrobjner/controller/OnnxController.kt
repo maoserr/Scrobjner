@@ -22,7 +22,6 @@ import kotlin.time.TimeSource
 private const val DIM_PIXEL_SIZE = 4;
 
 
-
 object OnnxController {
     private var ortEnv: OrtEnvironment = OrtEnvironment.getEnvironment()
 
@@ -30,6 +29,12 @@ object OnnxController {
     private lateinit var inputEncName: String
     private lateinit var ortSesDec: OrtSession
     private lateinit var inputDecName: String
+
+    private lateinit var encoded: OnnxTensor
+    private var imgW: Int = 0
+    private var imgH: Int = 0
+
+    private val timeSource = TimeSource.Monotonic
 
     suspend fun init(comp: ComponentActivity) {
         val dispatcher: CoroutineDispatcher = Dispatchers.Default
@@ -98,6 +103,42 @@ object OnnxController {
         }
     }
 
+    suspend fun rerunDecode(
+        pt: Pair<Float, Float>,
+        tl: Pair<Float, Float>,
+        br: Pair<Float, Float>
+    ): Pair<Bitmap, Float> {
+        val markStart = timeSource.markNow()
+        val ptLbls1 = floatArrayOf(1.0f, 2.0f, 3.0f, -1.0f)
+        val ptCoords1 = floatArrayOf(
+            pt.first, pt.second,
+            tl.first, tl.second,
+            br.first, br.second,
+            0.0f, 0.0f
+        )
+        val outbuf = ByteBuffer.allocate(
+            imgW * imgH * DIM_PIXEL_SIZE
+        )
+        val (iou, mask) = decode(encoded, ptCoords1, ptLbls1, imgW, imgH)
+        val markDec = timeSource.markNow()
+        val mask2 = mask.flatten().toTypedArray()
+        outbuf.rewind()
+        for (e in mask2) {
+            outbuf.put(e)
+        }
+        outbuf.rewind()
+
+        val bmp = Bitmap.createBitmap(imgW, imgH, Bitmap.Config.ARGB_8888)
+        bmp.copyPixelsFromBuffer(outbuf)
+        val markEnd = timeSource.markNow()
+        Log.d("Mao", "Dec: ${markDec - markStart}")
+        Log.d("Mao", "Post: ${markEnd - markDec}")
+
+        var runtime: Float = 0f
+        runtime = (markEnd - markStart).inWholeMilliseconds.toFloat() / 1000
+        return Pair(bmp, runtime)
+    }
+
     suspend fun runModel(
         img: Bitmap,
         pt: Pair<Float, Float>,
@@ -108,7 +149,9 @@ object OnnxController {
         return withContext(dispatcher) {
             var bit: Bitmap
             var runtime: Float = 0f
-            val timeSource = TimeSource.Monotonic
+            imgW = img.width
+            imgH = img.height
+
             val markStart = timeSource.markNow()
 
             val imgBuf = ByteBuffer.allocate(
@@ -128,7 +171,6 @@ object OnnxController {
             )
             Log.i("test", ptCoords1.contentToString())
             val ptLbls1 = floatArrayOf(1.0f, 2.0f, 3.0f, -1.0f)
-
             ortEnv.use {
                 val imgDat = OnnxTensor.createTensor(
                     ortEnv, imgBuf,
@@ -144,8 +186,8 @@ object OnnxController {
                     val out = ortSesEnc.run(encInput)
                     out.use {
                         val markEnc = timeSource.markNow()
-                        val rawOutput = out?.get(0)
-                        val (iou, mask) = decode(rawOutput as OnnxTensor, ptCoords1, ptLbls1,img.width, img.height)
+                        encoded = out?.get(0) as OnnxTensor
+                        val (iou, mask) = decode(encoded, ptCoords1, ptLbls1, img.width, img.height)
                         val markDec = timeSource.markNow()
                         val mask2 = mask.flatten().toTypedArray()
                         outbuf.rewind()
@@ -160,7 +202,7 @@ object OnnxController {
                         Log.d("Mao", "Dec: ${markDec - markEnc}")
                         Log.d("Mao", "Post: ${markEnd - markDec}")
                         Log.d("Mao", "Total: ${markEnd - markStart}")
-                        runtime = (markEnd - markStart).inWholeMilliseconds.toFloat()/1000
+                        runtime = (markEnd - markStart).inWholeMilliseconds.toFloat() / 1000
                         bit = bmp
                     }
                 }

@@ -23,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -51,7 +54,7 @@ fun resizeSrc(bit: Bitmap, maxSize: Int = 1024): Bitmap {
 }
 
 @Composable
-fun picker(image: MutableState<Bitmap?>) {
+fun picker(image: MutableState<Bitmap?>, bitchg: MutableState<Boolean>) {
     val res = LocalContext.current.contentResolver
     val launcher = rememberLauncherForActivityResult(
         contract =
@@ -61,6 +64,7 @@ fun picker(image: MutableState<Bitmap?>) {
             val bit = BitmapFactory.decodeStream(res.openInputStream(uri))
             val sizedBit = resizeSrc(bit)
             image.value = sizedBit
+            bitchg.value = true
         }
 
     }
@@ -166,7 +170,7 @@ fun TouchableFeedback(
                 .drawWithContent {
                     drawContent()
                     if (outbit.value != null) {
-                        drawImage(outbit.value!!.asImageBitmap(), blendMode = BlendMode.Color)
+                        drawImage(outbit.value!!.asImageBitmap())
                     }
                     drawRect(Color.Black, dragStart, Size(dragEnd.x, dragEnd.y), style = Stroke(width = 2F))
                 }
