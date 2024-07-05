@@ -36,8 +36,8 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           echo $ENCODED_STRING > keystore-b64.txt
-          base64 -d keystore-b64.txt > app/keystore.jks
-          echo "storeFilePath=keystore.jks" > signing.properties
+          base64 -d keystore-b64.txt > keystore.jks
+          echo "storeFilePath=$PWD/keystore.jks" > signing.properties
           echo "storePassword=$RELEASE_KEYSTORE_PASSWORD" >> signing.properties
           echo "keyPassword=$RELEASE_KEY_PASSWORD" >> signing.properties
           echo "keyAlias=$RELEASE_KEYSTORE_ALIAS" >> signing.properties
