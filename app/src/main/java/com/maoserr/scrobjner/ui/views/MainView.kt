@@ -42,11 +42,11 @@ fun overlay(bmp1: Bitmap, bmp2: Bitmap): Bitmap {
 }
 
 class MainViewModel(
-    val bit: MutableState<Bitmap?>
+    val bit: MutableState<Bitmap?>,
+    val outbit: MutableState<Bitmap?>
 ) : ViewModel() {
     val running: MutableState<Boolean> = mutableStateOf(false)
     val runtxt: MutableState<String> = mutableStateOf("")
-    val outbit: MutableState<Bitmap?> = mutableStateOf(null)
     val overlayed: MutableState<Bitmap?> = mutableStateOf(null)
     fun runModel(offset: Offset, size: IntSize, pt1: Offset, pt2: Offset, bitchg: Boolean) {
         if ((!running.value) && (bit.value != null)) {
@@ -67,7 +67,7 @@ class MainViewModel(
             viewModelScope.launch(Dispatchers.Default) {
                 val modres:Bitmap
                 val runtime:Float
-//                if (bitchg) {
+                if (bitchg) {
                     val res = OnnxController.runModel(
                         bitm,
                         Pair(w, h),
@@ -75,14 +75,14 @@ class MainViewModel(
                     )
                     modres = res.first
                     runtime = res.second
-//                } else {
-//                    val res = OnnxController.rerunDecode(
-//                        Pair(w, h),
-//                        Pair(minx, miny), Pair(maxx, maxy)
-//                    )
-//                    modres = res.first
-//                    runtime = res.second
-//                }
+                } else {
+                    val res = OnnxController.rerunDecode(
+                        Pair(w, h),
+                        Pair(minx, miny), Pair(maxx, maxy)
+                    )
+                    modres = res.first
+                    runtime = res.second
+                }
                 Log.i("Mao","${bitm.width}, ${bitm.height}, " +
                         "${modres.width}, ${modres.height}")
                 viewModelScope.launch(Dispatchers.Main) {
@@ -101,9 +101,10 @@ class MainViewModel(
 fun MainView(
     bitmap: MutableState<Bitmap?>,
     bitChg: MutableState<Boolean>,
+    outbit: MutableState<Bitmap?>,
     innerPadding: PaddingValues
 ) {
-    val mod = remember { MainViewModel(bitmap) }
+    val mod = remember { MainViewModel(bitmap, outbit) }
     Column(
         modifier = Modifier
             .padding(innerPadding)
@@ -114,7 +115,7 @@ fun MainView(
                 "or click the Magnifying glass to pick from camera. " +
                 "Then click on points to run model. " +
                 "You can also drag a box to constrain model.")
-        picker(mod.bit, bitChg)
+        picker(mod.bit, bitChg, mod.outbit)
         Row {
             if (mod.running.value) {
                 CircularProgressIndicator(
@@ -126,7 +127,7 @@ fun MainView(
                 Text(text = mod.runtxt.value)
             }
         }
-        TouchableFeedback(bit = mod.bit, outbit = mod.outbit)
+        TouchableFeedback(bit = bitmap, outbit = mod.outbit)
         { offset, size, minC, maxC ->
             mod.runModel(offset, size, minC, maxC, bitChg.value)
             bitChg.value = false

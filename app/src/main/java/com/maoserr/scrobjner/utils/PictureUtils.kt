@@ -37,24 +37,22 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 fun resizeSrc(bit: Bitmap, maxSize: Int = 1024): Bitmap {
-    if (bit.width > maxSize && bit.width > bit.height){
+    if (bit.width > bit.height) {
         val scale = maxSize.toDouble() / bit.width
         val w = bit.width * scale
         val h = bit.height * scale
         val res = Bitmap.createScaledBitmap(bit, w.toInt(), h.toInt(), true)
         return res
-    } else if (bit.height > maxSize && bit.height >= bit.width){
-        val scale = maxSize.toDouble() / bit.height
-        val w = bit.width * scale
-        val h = bit.height * scale
-        val res = Bitmap.createScaledBitmap(bit, w.toInt(), h.toInt(), true)
-        return res
     }
-    return bit
+    val scale = maxSize.toDouble() / bit.height
+    val w = bit.width * scale
+    val h = bit.height * scale
+    val res = Bitmap.createScaledBitmap(bit, w.toInt(), h.toInt(), true)
+    return res
 }
 
 @Composable
-fun picker(image: MutableState<Bitmap?>, bitchg: MutableState<Boolean>) {
+fun picker(image: MutableState<Bitmap?>, bitchg: MutableState<Boolean>, outbit: MutableState<Bitmap?>) {
     val res = LocalContext.current.contentResolver
     val launcher = rememberLauncherForActivityResult(
         contract =
@@ -69,6 +67,7 @@ fun picker(image: MutableState<Bitmap?>, bitchg: MutableState<Boolean>) {
 
     }
     Button(onClick = {
+        outbit.value = null
         launcher.launch("image/*")
     }) {
         Text(text = "Select image")
@@ -76,11 +75,11 @@ fun picker(image: MutableState<Bitmap?>, bitchg: MutableState<Boolean>) {
 }
 
 @Composable
-fun pickerW(bit: Bitmap){
+fun pickerW(bit: Bitmap) {
     val res = LocalContext.current.contentResolver
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("image/png")) {
-        uri: Uri? ->
+        contract = ActivityResultContracts.CreateDocument("image/png")
+    ) { uri: Uri? ->
         uri?.let {
             res.openOutputStream(it)?.let { it1 ->
                 bit.compress(Bitmap.CompressFormat.PNG, 90, it1)
@@ -173,6 +172,7 @@ fun TouchableFeedback(
                         drawImage(outbit.value!!.asImageBitmap())
                     }
                     drawRect(Color.Black, dragStart, Size(dragEnd.x, dragEnd.y), style = Stroke(width = 2F))
+
                 }
                 .graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen

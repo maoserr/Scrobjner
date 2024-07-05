@@ -108,8 +108,8 @@ object CameraController {
                     .setOutputImageRotationEnabled(true)
                     .setResolutionSelector(
                         ResolutionSelector.Builder().setResolutionStrategy(
-                            ResolutionStrategy(Size(1024, 768),
-                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)
+                            ResolutionStrategy(Size(1920, 1080),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER)
                         ).build()
                     )
                     .build()

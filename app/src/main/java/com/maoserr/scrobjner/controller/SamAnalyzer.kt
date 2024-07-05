@@ -1,6 +1,7 @@
 package com.maoserr.scrobjner.controller
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -20,7 +21,9 @@ internal class FrameProc(
         if (run.value) {
             run.value = false
             image.image?.let {
-                outimg.value = resizeSrc(image.toBitmap())
+                val resimg = resizeSrc(image.toBitmap())
+                Log.i("Analyzer","${resimg.width}, ${resimg.height}")
+                outimg.value = resimg
                 bitchg.value = true
                 onCap?.invoke()
             }

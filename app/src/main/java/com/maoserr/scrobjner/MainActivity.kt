@@ -19,6 +19,7 @@ import com.maoserr.scrobjner.ui.views.MainView
 class MainActivity : ComponentActivity() {
     private var shouldShowCamera: MutableState<Boolean> = mutableStateOf(false)
     private var bitmap: MutableState<Bitmap?> = mutableStateOf(null)
+    private var outbit: MutableState<Bitmap?> = mutableStateOf(null)
     private var bitChg: MutableState<Boolean> = mutableStateOf(true)
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +45,10 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     floatingActionButton = {
-                        FloatingActionButton(onClick = { shouldShowCamera.value = true }) {
+                        FloatingActionButton(onClick = {
+                            outbit.value = null
+                            shouldShowCamera.value = true
+                        }) {
                             Icon(Icons.Default.Search, contentDescription = "Camera")
                         }
                     }
@@ -56,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             onClose = ::handleClose,
                         )
                     } else {
-                        MainView(bitmap, bitChg, innerPadding)
+                        MainView(bitmap, bitChg,outbit, innerPadding)
                     }
                 }
             }
