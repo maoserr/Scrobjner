@@ -1,3 +1,5 @@
+import java.util.*
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,14 +8,24 @@ plugins {
 android {
     namespace = "com.maoserr.scrobjner"
     compileSdk = 34
+    signingConfigs {
+        create("release") {
+            val properties = Properties().apply {
+                load(File("signing.properties").reader())
+            }
+            storeFile = File(properties.getProperty("storeFilePath"))
+            storePassword = properties.getProperty("storePassword")
+            keyPassword = properties.getProperty("keyPassword")
+            keyAlias = properties.getProperty("keyAlias")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.maoserr.scrobjner"
         minSdk = 29
-        //noinspection OldTargetApi
-        targetSdk = 33
-        versionCode = 5
-        versionName = "0.5"
+        targetSdk = 34
+        versionCode = 6
+        versionName = "0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -24,6 +36,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
