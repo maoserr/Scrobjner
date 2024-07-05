@@ -30,7 +30,7 @@ object OnnxController {
     private lateinit var ortSesDec: OrtSession
     private lateinit var inputDecName: String
 
-    private lateinit var encoded: OnnxTensor
+    private lateinit var encoded: FloatBuffer
     private var imgW: Int = 0
     private var imgH: Int = 0
 
@@ -119,17 +119,31 @@ object OnnxController {
         val outbuf = ByteBuffer.allocate(
             imgW * imgH * DIM_PIXEL_SIZE
         )
-        val (iou, mask) = decode(encoded, ptCoords1, ptLbls1, imgW, imgH)
-        val markDec = timeSource.markNow()
-        val mask2 = mask.flatten().toTypedArray()
-        outbuf.rewind()
-        for (e in mask2) {
-            outbuf.put(e)
-        }
-        outbuf.rewind()
-
+        val markDec:TimeSource.Monotonic.ValueTimeMark
         val bmp = Bitmap.createBitmap(imgW, imgH, Bitmap.Config.ARGB_8888)
-        bmp.copyPixelsFromBuffer(outbuf)
+        ortEnv.use {
+            val tens = OnnxTensor.createTensor(
+                ortEnv, encoded, longArrayOf(
+                    1L,
+                    256,
+                    64L,
+                    64L
+                )
+            )
+            tens.use {
+                val (iou, mask) = decode(tens, ptCoords1, ptLbls1, imgW, imgH)
+
+                markDec = timeSource.markNow()
+                val mask2 = mask.flatten().toTypedArray()
+                outbuf.rewind()
+                for (e in mask2) {
+                    outbuf.put(e)
+                }
+                outbuf.rewind()
+
+                bmp.copyPixelsFromBuffer(outbuf)
+            }
+        }
         val markEnd = timeSource.markNow()
         Log.d("Mao", "Dec: ${markDec - markStart}")
         Log.d("Mao", "Post: ${markEnd - markDec}")
@@ -186,8 +200,9 @@ object OnnxController {
                     val out = ortSesEnc.run(encInput)
                     out.use {
                         val markEnc = timeSource.markNow()
-                        encoded = out?.get(0) as OnnxTensor
-                        val (iou, mask) = decode(encoded, ptCoords1, ptLbls1, img.width, img.height)
+                        val embeds = out?.get(0) as OnnxTensor
+                        encoded = embeds.floatBuffer
+                        val (iou, mask) = decode(embeds, ptCoords1, ptLbls1, img.width, img.height)
                         val markDec = timeSource.markNow()
                         val mask2 = mask.flatten().toTypedArray()
                         outbuf.rewind()

@@ -19,3 +19,4 @@ __pycache__
 python/output.jpg
 /app/src/main/res/raw/samdec.onnx
 /app/src/main/res/raw/samenc.onnx
+signing.properties

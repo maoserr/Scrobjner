@@ -6,13 +6,14 @@ plugins {
 }
 
 android {
+    val properties = Properties().apply {
+        load(File("signing.properties").reader())
+    }
     namespace = "com.maoserr.scrobjner"
     compileSdk = 34
     signingConfigs {
         create("release") {
-            val properties = Properties().apply {
-                load(File("signing.properties").reader())
-            }
+
             storeFile = File(properties.getProperty("storeFilePath"))
             storePassword = properties.getProperty("storePassword")
             keyPassword = properties.getProperty("keyPassword")
@@ -24,8 +25,8 @@ android {
         applicationId = "com.maoserr.scrobjner"
         minSdk = 29
         targetSdk = 34
-        versionCode = 6
-        versionName = "0.6"
+        versionCode = properties.getProperty("versionCode").toInt()
+        versionName = properties.getProperty("versionName")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
