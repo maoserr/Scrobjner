@@ -8,15 +8,3 @@ updates:
       dev-dependencies:
         patterns:
           - "*"
-
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: monthly
-    groups:
-      dev-dependencies:
-        patterns:
-          - "*"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
