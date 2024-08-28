@@ -245,8 +245,22 @@ if __name__ == "__main__":
     onnx_opset = 17
     run_enc = True
     run_dec = False
+    quantize_out = ""
     if run_enc:
         run_enc_pipe()
+    if quantize_out is not None:
+        from onnxruntime.quantization import QuantType  # type: ignore
+        from onnxruntime.quantization.quantize import quantize_dynamic  # type: ignore
+
+        print(f"Quantizing model and writing to {quantize_out}...")
+        quantize_dynamic(
+            model_input=args.output,
+            model_output=args.quantize_out,
+            per_channel=False,
+            reduce_range=False,
+            # weight_type=QuantType.QUInt8,
+        )
+        print("Done!")
 
     if run_dec:
         run_dec_pipe()

@@ -56,7 +56,7 @@ parser.add_argument(
 parser.add_argument(
     "--quantize-out",
     type=str,
-    default=None,
+    default="samdenc_quant",
     help=(
         "If set, will quantize the model and save it with this name. "
         "Quantization is performed with quantize_dynamic from "
@@ -202,6 +202,6 @@ if __name__ == "__main__":
             model_output=args.quantize_out,
             per_channel=False,
             reduce_range=False,
-            weight_type=QuantType.QUInt8,
+            # weight_type=QuantType.QUInt8,
         )
         print("Done!")
