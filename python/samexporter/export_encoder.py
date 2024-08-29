@@ -191,17 +191,3 @@ if __name__ == "__main__":
         opset=args.opset,
         gelu_approximate=args.gelu_approximate,
     )
-
-    if args.quantize_out is not None:
-        from onnxruntime.quantization import QuantType  # type: ignore
-        from onnxruntime.quantization.quantize import quantize_dynamic  # type: ignore
-
-        print(f"Quantizing model and writing to {args.quantize_out}...")
-        quantize_dynamic(
-            model_input=args.output,
-            model_output=args.quantize_out,
-            per_channel=False,
-            reduce_range=False,
-            # weight_type=QuantType.QUInt8,
-        )
-        print("Done!")

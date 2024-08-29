@@ -5,6 +5,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.extensions.OrtxPackage
+import ai.onnxruntime.providers.NNAPIFlags
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -17,6 +18,7 @@ import org.jetbrains.kotlinx.multik.api.zeros
 import org.jetbrains.kotlinx.multik.ndarray.operations.toFloatArray
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
+import java.util.*
 import kotlin.time.TimeSource
 
 private const val DIM_PIXEL_SIZE = 4;
@@ -41,6 +43,7 @@ object OnnxController {
         withContext(dispatcher) {
             val sessionOptions: OrtSession.SessionOptions = OrtSession.SessionOptions()
             sessionOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath())
+            sessionOptions.addNnapi(EnumSet.of( NNAPIFlags.CPU_DISABLED))
 
             ortSesEnc = ortEnv.createSession(
                 comp.resources.openRawResource(R.raw.samenc_enh)

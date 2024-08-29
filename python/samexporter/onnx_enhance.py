@@ -6,6 +6,10 @@ from onnxruntime_extensions.tools import add_pre_post_processing_to_model as add
 from onnxruntime_extensions.tools.pre_post_processing.step import Step, Debug
 from onnxsim import simplify, model_info
 
+run_enc = True
+run_dec = False
+quantize_out = None #"../app/src/main/res/raw/samenc_quant.onnx"
+
 ONNX_MODEL_ENC = '../app/src/main/res/raw/samenc.onnx'
 ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING = '../app/src/main/res/raw/samenc_enh.onnx'
 
@@ -176,15 +180,15 @@ class MaskToRGBA(Step):
             mask_sq,
             concat
         ], "mask_to_rgba",
-                           [
-                               make_tensor_value_info(self.input_names[0], onnx.TensorProto.UINT8, inpt_shape),
-                               make_tensor_value_info(self.input_names[1], onnx.TensorProto.FLOAT, [2])
-                           ],
-                           [
-                               make_tensor_value_info(self.output_names[0], onnx.TensorProto.UINT8,
-                                                      inpt_shape[0:2] + [4])
-                           ]
-                           )
+            [
+                make_tensor_value_info(self.input_names[0], onnx.TensorProto.UINT8, inpt_shape),
+                make_tensor_value_info(self.input_names[1], onnx.TensorProto.FLOAT, [2])
+            ],
+            [
+                make_tensor_value_info(self.output_names[0], onnx.TensorProto.UINT8,
+                                       inpt_shape[0:2] + [4])
+            ]
+        )
         print(onnx.printer.to_text(graph))
         return graph
 
@@ -243,24 +247,23 @@ if __name__ == "__main__":
     # ORT 1.14 and later support ONNX opset 18, which added antialiasing to the Resize operator.
     # Results are much better when that can be used. Minimum opset is 16.
     onnx_opset = 17
-    run_enc = True
-    run_dec = False
-    quantize_out = ""
+
     if run_enc:
         run_enc_pipe()
+
+    if run_dec:
+        run_dec_pipe()
+
     if quantize_out is not None:
         from onnxruntime.quantization import QuantType  # type: ignore
         from onnxruntime.quantization.quantize import quantize_dynamic  # type: ignore
 
         print(f"Quantizing model and writing to {quantize_out}...")
         quantize_dynamic(
-            model_input=args.output,
-            model_output=args.quantize_out,
+            model_input=ONNX_MODEL_ENC_WITH_PRE_POST_PROCESSING,
+            model_output=quantize_out,
             per_channel=False,
             reduce_range=False,
-            # weight_type=QuantType.QUInt8,
+            weight_type=QuantType.QUInt8,
         )
         print("Done!")
-
-    if run_dec:
-        run_dec_pipe()
