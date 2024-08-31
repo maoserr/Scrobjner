@@ -55,7 +55,7 @@ def encoder():
 def decoder():
     import torch
     from mobile_sam import sam_model_registry
-    from mobile_sam.utils.onnx import SamOnnxModel
+    from samexporter.mobile_encoder.util_onnx import SamOnnxModel
 
     model_type = "vit_t"
     checkpoint = "mobile_sam.pt"
@@ -66,7 +66,7 @@ def decoder():
 
     onnx_model = SamOnnxModel(
         model=sam,
-        return_single_mask=True,
+        return_single_mask=False,
         use_stability_score=True,
         return_extra_metrics=False,
     )
@@ -75,11 +75,6 @@ def decoder():
         for _, m in onnx_model.named_modules():
             if isinstance(m, torch.nn.GELU):
                 m.approximate = "tanh"
-
-    dynamic_axes = {
-        "point_coords": {1: "num_points"},
-        "point_labels": {1: "num_points"},
-    }
 
     embed_dim = sam.prompt_encoder.embed_dim
     embed_size = sam.prompt_encoder.image_embedding_size
