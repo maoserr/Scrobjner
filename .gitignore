@@ -17,6 +17,6 @@ local.properties
 python/*.pt
 __pycache__
 python/output.jpg
-/app/src/main/res/raw/samdec.onnx
-/app/src/main/res/raw/samenc.onnx
+/app/src/main/res/raw/*.onnx
+/app/src/main/res/raw/*.tflite
 signing.properties

@@ -66,6 +66,8 @@ argparser.add_argument(
 )
 
 if __name__ == "__main__":
+    import time
+
     args = argparser.parse_args()
 
     model = SegmentAnythingONNX(
@@ -77,9 +79,11 @@ if __name__ == "__main__":
     # image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
     prompt = json.load(open(args.prompt))
-
+    start = time.time()
     embedding = model.encode(image, enhance)
+    print(f'Encode: {time.time() - start}')
     masks, lowm = model.predict_masks(embedding, prompt, enhance_dec)
+    print(f'Total: {time.time() - start}')
 
     if enhance_dec:
         visualized = masks
