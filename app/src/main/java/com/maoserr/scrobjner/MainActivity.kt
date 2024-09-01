@@ -11,7 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import com.maoserr.scrobjner.controller.CameraController
-import com.maoserr.scrobjner.controller.OnnxController
+import com.maoserr.scrobjner.controller.TFLiteController
 import com.maoserr.scrobjner.ui.theme.ScrobjnerTheme
 import com.maoserr.scrobjner.ui.views.CameraView
 import com.maoserr.scrobjner.ui.views.MainView
@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ScrobjnerTheme {
                 LaunchedEffect(Unit) {
-                    OnnxController.init(comp)
+                    TFLiteController.init(comp)
                 }
                 Scaffold(
                     topBar = {
@@ -76,6 +76,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         CameraController.release()
-        OnnxController.release()
+        TFLiteController.release()
     }
 }

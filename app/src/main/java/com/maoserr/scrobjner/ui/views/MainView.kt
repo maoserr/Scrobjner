@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.maoserr.scrobjner.controller.OnnxController
+import com.maoserr.scrobjner.controller.TFLiteController
 import com.maoserr.scrobjner.utils.TouchableFeedback
 import com.maoserr.scrobjner.utils.picker
 import com.maoserr.scrobjner.utils.pickerW
@@ -67,22 +67,22 @@ class MainViewModel(
             viewModelScope.launch(Dispatchers.Default) {
                 val modres:Bitmap
                 val runtime:Float
-                if (bitchg) {
-                    val res = OnnxController.runModel(
+//                if (bitchg) {
+                    val res = TFLiteController.runModel(
                         bitm,
                         Pair(w, h),
                         Pair(minx, miny), Pair(maxx, maxy)
                     )
                     modres = res.first
                     runtime = res.second
-                } else {
-                    val res = OnnxController.rerunDecode(
-                        Pair(w, h),
-                        Pair(minx, miny), Pair(maxx, maxy)
-                    )
-                    modres = res.first
-                    runtime = res.second
-                }
+//                } else {
+//                    val res = OnnxController.rerunDecode(
+//                        Pair(w, h),
+//                        Pair(minx, miny), Pair(maxx, maxy)
+//                    )
+//                    modres = res.first
+//                    runtime = res.second
+//                }
                 Log.i("Mao","${bitm.width}, ${bitm.height}, " +
                         "${modres.width}, ${modres.height}")
                 viewModelScope.launch(Dispatchers.Main) {
