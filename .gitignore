@@ -19,4 +19,5 @@ __pycache__
 python/output.jpg
 /app/src/main/res/raw/*.onnx
 /app/src/main/res/raw/*.tflite
+/app/src/main/assets/*tflite
 signing.properties

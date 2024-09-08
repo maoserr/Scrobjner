@@ -94,6 +94,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-tflite-support:16.1.0")
     implementation("com.google.android.gms:play-services-tflite-gpu:16.2.0")
 
+    implementation("com.google.mediapipe:tasks-vision:latest.release")
+
     implementation("io.coil-kt:coil-compose:2.5.0")
     testImplementation("junit:junit:4.13.2")
 
