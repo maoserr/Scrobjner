@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checking out branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -45,7 +45,7 @@ jobs:
           echo "versionName=${{ github.run_number }}" >> signing.properties
       - name: Build Release bundle
         run: ./gradlew bundleRelease --stacktrace
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: bundle
           path: app/build/outputs/bundle/release/app-release.aab
