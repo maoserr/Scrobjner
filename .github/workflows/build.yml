@@ -45,7 +45,7 @@ jobs:
           echo "versionName=${{ github.run_number }}" >> signing.properties
       - name: Build Release bundle
         run: ./gradlew bundleRelease --stacktrace
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: bundle
           path: app/build/outputs/bundle/release/app-release.aab
