@@ -27,7 +27,7 @@ jobs:
           java-version: 20
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4.0.0
+        uses: android-actions/setup-android@v4.0.1
       - name: Decode Keystore
         env:
           ENCODED_STRING: ${{ secrets.KEYSTORE_BASE_64 }}
